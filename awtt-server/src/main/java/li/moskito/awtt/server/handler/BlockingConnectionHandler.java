@@ -33,13 +33,10 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
 
     private int maxConnections = 5; // default
     private Port port;
-    private final AtomicBoolean open = new AtomicBoolean(true);
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     @Override
     public void run() {
-
-        // create a thread pool for incoming connections according to configuration
-        final ExecutorService connectionExecutorService = Executors.newFixedThreadPool(this.maxConnections);
 
         // create a socket address from port configuration
         final SocketAddress bindAddress = new InetSocketAddress(this.port.getHostname(), this.port.getPortNumber());
@@ -47,33 +44,71 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
         // open the server socket (AutoCloseable)
         try (ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
 
-            serverSocketChannel.bind(bindAddress);
-            LOG.info("Listening on {}", bindAddress);
-            serverSocketChannel.configureBlocking(true);
+            // bind the channel to the address
+            this.initializeChannel(serverSocketChannel, bindAddress);
 
-            while (this.open.get()) {
-
-                // wait for incoming connections
-                SocketChannel client;
-                try {
-                    LOG.debug("Waiting for connection");
-                    client = serverSocketChannel.accept();
-                    // set to blocking
-                    client.configureBlocking(true);
-                    // create a new worker for the incoming connection
-                    final Runnable worker = new RequestWorker(client, this.port.getRequestHandlers());
-                    // and dispatch it to the thread pool
-                    connectionExecutorService.execute(worker);
-
-                } catch (final IOException e) {
-                    throw new RuntimeException("Error occured", e);
-                }
-            }
+            // handle incoming connections (blocking operation)
+            this.handleConnections(serverSocketChannel);
 
         } catch (final IOException e) {
             LOG.error("Could not create server socket", e);
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Accepts incoming connection on the specified serverSocketChannel. Every incoming connection is dispatched to a
+     * worker in the thread pool.
+     * 
+     * @param serverSocketChannel
+     */
+    private void handleConnections(final ServerSocketChannel serverSocketChannel) {
+
+        // create a thread pool for incoming connections according to configuration
+        final ExecutorService connectionExecutorService = Executors.newFixedThreadPool(this.maxConnections);
+
+        while (this.running.get()) {
+            try {
+                // wait for incoming connections
+                final SocketChannel client = serverSocketChannel.accept();
+                // set to blocking
+                client.configureBlocking(true);
+                // dispatch the incoming connection to the thread pool
+                this.dispatchClientConnection(client, connectionExecutorService);
+
+            } catch (final IOException e) {
+                throw new RuntimeException("Error occured", e);
+            }
+        }
+    }
+
+    /**
+     * Dispatches the
+     * 
+     * @param client
+     * @param connectionExecutorService
+     * @throws IOException
+     */
+    private void dispatchClientConnection(final SocketChannel client, final ExecutorService connectionExecutorService)
+            throws IOException {
+        // create a new worker for the incoming connection
+        final Runnable worker = new RequestWorker(client, this.port.getRequestHandlers());
+        // and dispatch it to the thread pool
+        connectionExecutorService.execute(worker);
+    }
+
+    /**
+     * Initializes the channel by binding it to the specified address and setting it to blocking mode
+     * 
+     * @param serverSocketChannel
+     * @param bindAddress
+     * @throws IOException
+     */
+    private void initializeChannel(final ServerSocketChannel serverSocketChannel, final SocketAddress bindAddress)
+            throws IOException {
+        serverSocketChannel.bind(bindAddress);
+        LOG.info("Listening on {}", bindAddress);
+        serverSocketChannel.configureBlocking(true);
     }
 
     @Override
@@ -91,7 +126,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
      */
     @Override
     public void close() throws IOException {
-        this.open.set(false);
+        this.running.set(false);
 
     }
 
