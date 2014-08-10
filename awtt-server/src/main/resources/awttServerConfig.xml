@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
-<awttServer>
+<awttServer type="li.moskito.awtt.server.MultiportServer">
+	<ports>
+		<listenPort hostname="" port="8080" protocol="http">
+			<connectionHandler class="li.moskito.awtt.server.handler.BlockingConnectionHandler">
+				<maxConnections>5</maxConnections> 
+			</connectionHandler>
+			<requestHandlers>
+				<handler class="li.moskito.awtt.server.handler.StaticFileContentRequestHandler">
+					<contentRoot>file:/C:/http/htdocs</contentRoot>
+				</handler>
+			</requestHandlers>
+		</listenPort>
+	</ports>
 </awttServer>

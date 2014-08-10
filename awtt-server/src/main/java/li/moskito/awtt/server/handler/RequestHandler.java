@@ -1,7 +1,7 @@
 /**
  * 
  */
-package li.moskito.awtt.server;
+package li.moskito.awtt.server.handler;
 
 import li.moskito.awtt.protocol.http.Request;
 import li.moskito.awtt.protocol.http.Response;

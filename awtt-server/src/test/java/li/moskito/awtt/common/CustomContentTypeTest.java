@@ -11,12 +11,12 @@ public class CustomContentTypeTest {
 
     @Before
     public void setUp() throws Exception {
-        this.subject = new CustomContentType("test/plain");
+        this.subject = new CustomContentType("text/plain");
     }
 
     @Test
     public void testGetMIMEType() throws Exception {
-        assertEquals("text/plain", this.subject);
+        assertEquals("text/plain", this.subject.getMIMEType());
     }
 
 }

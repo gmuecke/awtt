@@ -39,7 +39,11 @@
 			<artifactId>commons-codec</artifactId>
 			<version>${commons.codec}</version>
 		</dependency>
-
+		<dependency>
+			<groupId>commons-jxpath</groupId>
+			<artifactId>commons-jxpath</artifactId>
+			<version>${commons.jxpath.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>

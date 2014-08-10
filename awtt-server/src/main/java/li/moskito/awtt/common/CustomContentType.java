@@ -26,4 +26,9 @@ public class CustomContentType implements ContentType {
         return this.mimeType;
     }
 
+    @Override
+    public String toString() {
+        return this.mimeType;
+    }
+
 }

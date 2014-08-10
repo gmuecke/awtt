@@ -1,7 +1,7 @@
 /**
  * 
  */
-package li.moskito.awtt.server;
+package li.moskito.awtt.server.handler;
 
 import static li.moskito.awtt.protocol.http.ResponseHeaderFieldDefinitions.CONTENT_LENGTH;
 import static li.moskito.awtt.protocol.http.ResponseHeaderFieldDefinitions.CONTENT_TYPE;
@@ -25,23 +25,26 @@ import li.moskito.awtt.protocol.http.Entity;
 import li.moskito.awtt.protocol.http.Request;
 import li.moskito.awtt.protocol.http.Response;
 import li.moskito.awtt.protocol.http.StatusCodes;
+import li.moskito.awtt.server.Configurable;
 
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * @author Gerald
  */
-public class StaticFileContentRequestHandler implements RequestHandler {
+public class StaticFileContentRequestHandler implements RequestHandler, Configurable {
 
     /**
      * SLF4J Logger for this class
      */
     private static final Logger LOG = LoggerFactory.getLogger(StaticFileContentRequestHandler.class);
 
-    private final Path contentRoot;
+    private Path contentRoot;
 
-    private String indexFileName;
+    private final String indexFileName;
 
     private final static String HTTP_DATE_FORMAT = "EEE, d MMM yyy HH:mm:ss zzz";
 
@@ -58,16 +61,9 @@ public class StaticFileContentRequestHandler implements RequestHandler {
      */
     public StaticFileContentRequestHandler() {
 
-        try {
-            // TODO make the base path configurable
-            this.contentRoot = Paths.get(new URI("file:/c:/http/htdocs/"));
-            // TODO make index file name configurable
-            this.indexFileName = "index.html";
-            LOG.info("Serving files from content root {}", this.contentRoot);
+        // TODO make index file name configurable
+        this.indexFileName = "index.html";
 
-        } catch (final URISyntaxException e) {
-            throw new RuntimeException("Invalid ContentRoot");
-        }
     }
 
     @Override
@@ -118,6 +114,18 @@ public class StaticFileContentRequestHandler implements RequestHandler {
 
         }
         return null;
+    }
+
+    @Override
+    public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
+
+        try {
+            this.contentRoot = Paths.get(new URI(config.getString("contentRoot")));
+            LOG.info("Serving files from content root {}", this.contentRoot);
+
+        } catch (final URISyntaxException e) {
+            throw new ConfigurationException("ContentRoot not valid");
+        }
     }
 
     /**
