@@ -10,6 +10,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import li.moskito.awtt.server.Configurable;
 import li.moskito.awtt.server.Port;
@@ -32,6 +33,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
 
     private int maxConnections = 5; // default
     private Port port;
+    private final AtomicBoolean open = new AtomicBoolean(true);
 
     @Override
     public void run() {
@@ -49,12 +51,12 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
             LOG.info("Listening on {}", bindAddress);
             serverSocketChannel.configureBlocking(true);
 
-            // event loop
-            while (true) { // TODO add shutdown option
+            while (this.open.get()) {
 
                 // wait for incoming connections
                 SocketChannel client;
                 try {
+                    LOG.debug("Waiting for connection");
                     client = serverSocketChannel.accept();
                     // set to blocking
                     client.configureBlocking(true);
@@ -70,7 +72,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
 
         } catch (final IOException e) {
             LOG.error("Could not create server socket", e);
-            throw new RuntimeException("Unable to set server socket to blocking mode", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -82,6 +84,15 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     @Override
     public void bind(final Port port) {
         this.port = port;
+    }
+
+    /**
+     * @throws IOException
+     */
+    @Override
+    public void close() throws IOException {
+        this.open.set(false);
+
     }
 
 }

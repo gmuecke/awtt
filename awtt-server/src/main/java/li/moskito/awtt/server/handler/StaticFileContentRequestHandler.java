@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
+import li.moskito.awtt.protocol.http.Commands;
 import li.moskito.awtt.protocol.http.ContentType;
 import li.moskito.awtt.protocol.http.Entity;
 import li.moskito.awtt.protocol.http.Request;
@@ -72,7 +73,7 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
 
     @Override
     public boolean accepts(final Request request) {
-        return true;
+        return request.getCommand() == Commands.GET;
     }
 
     @Override
@@ -130,7 +131,8 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
             final List<HierarchicalConfiguration> contentTypeConfigs = config.configurationsAt("contentTypes/type");
             for (final HierarchicalConfiguration contentTypeConfig : contentTypeConfigs) {
                 final ContentType contentType = new ContentType(contentTypeConfig.getString("@mimeType"));
-                this.contentTypes.put(contentTypeConfig.getString("@fileExtension"), contentType);
+                final String fileExtension = contentTypeConfig.getString("@fileExtension");
+                this.contentTypes.put(fileExtension, contentType);
             }
 
         } catch (final URISyntaxException e) {
