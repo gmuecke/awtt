@@ -4,7 +4,7 @@
 package li.moskito.awtt.server;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.XMLConfiguration;
+import org.apache.commons.configuration.HierarchicalConfiguration;
 
 /**
  * Builder to create a server instance. Inspired by JBoss Undertow, see <a
@@ -16,7 +16,7 @@ public final class ServerBuilder {
 
     private ServerBuilder() {}
 
-    public static Server buildFromConfiguration(final XMLConfiguration conf) throws ConfigurationException {
+    public static Server buildFromConfiguration(final HierarchicalConfiguration conf) throws ConfigurationException {
         final Server server;
         try {
             server = (Server) Class.forName(conf.getString("@type")).newInstance();
