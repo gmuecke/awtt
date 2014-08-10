@@ -9,11 +9,11 @@ import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * @author Gerald
- *
  */
 @RunWith(Suite.class)
 @SuiteClasses({
-        HeaderFieldTest.class, HTTPTest.class, MessageTest.class, ResponseTest.class
+        EntityTest.class, HeaderFieldTest.class, HTTPTest.class, MessageTest.class, ResponseTest.class,
+        RequestTest.class
 })
 public class HttpTestSuite {
 

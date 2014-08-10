@@ -133,14 +133,14 @@ public class HTTPTest {
     }
 
     @Test
-        public void testSerializeResponseHeader() throws Exception {
-            final Response response = new Response(Version.HTTP_1_1, StatusCodes.SUCCESSFUL_200_OK);
-            response.addField(ResponseHeaderFieldDefinitions.CONTENT_LENGTH, "200");
-    
-            final CharBuffer buf = HTTP.serializeResponseHeader(response);
-            assertNotNull(buf);
-            final String message = buf.toString();
-            assertEquals("HTTP/1.1 200 OK\r\nContent-Length: 200\r\n", message);
-        }
+    public void testSerializeResponseHeader() throws Exception {
+        final Response response = new Response(Version.HTTP_1_1, StatusCodes.SUCCESSFUL_200_OK);
+        response.addField(ResponseHeaderFieldDefinitions.CONTENT_LENGTH, "200");
+
+        final CharBuffer buf = HTTP.serializeResponseHeader(response);
+        assertNotNull(buf);
+        final String message = buf.toString();
+        assertEquals("HTTP/1.1 200 OK\r\nContent-Length: 200\r\n\r\n", message);
+    }
 
 }
