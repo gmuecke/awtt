@@ -1,14 +1,16 @@
 /**
  * 
  */
-package li.moskito.awtt.common;
+package li.moskito.awtt.protocol.http;
 
 /**
  * A implementation of the ContentType interface for creating custom content Types
  * 
  * @author Gerald
  */
-public class CustomContentType implements ContentType {
+public class ContentType {
+
+    public final static ContentType APPLICATION_OCTETSTREAM = new ContentType("application/octet-stream");
 
     private final String mimeType;
 
@@ -17,11 +19,15 @@ public class CustomContentType implements ContentType {
      * 
      * @param mimeType
      */
-    public CustomContentType(final String mimeType) {
+    public ContentType(final String mimeType) {
         this.mimeType = mimeType;
     }
 
-    @Override
+    /**
+     * Returns the MIME Type for the content type in the format type/subtype
+     * 
+     * @return
+     */
     public String getMIMEType() {
         return this.mimeType;
     }

@@ -7,7 +7,7 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>awtt-server</artifactId>
-	<name>Assembled with Tinker Toys</name>
+	<name>TinkerToy Server</name>
 
 	<build>
 		<plugins>

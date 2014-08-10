@@ -16,11 +16,13 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentHashMap;
 
-import li.moskito.awtt.common.ContentType;
-import li.moskito.awtt.common.ContentTypes;
+import li.moskito.awtt.protocol.http.ContentType;
 import li.moskito.awtt.protocol.http.Entity;
 import li.moskito.awtt.protocol.http.Request;
 import li.moskito.awtt.protocol.http.Response;
@@ -48,6 +50,8 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
 
     private final static String HTTP_DATE_FORMAT = "EEE, d MMM yyy HH:mm:ss zzz";
 
+    private final Map<String, ContentType> contentTypes;
+
     // Thread safe date formatter
     private static final ThreadLocal<SimpleDateFormat> HTTP_DATE_FORMATTER = new ThreadLocal<SimpleDateFormat>() {
         @Override
@@ -60,9 +64,9 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
      * 
      */
     public StaticFileContentRequestHandler() {
-
         // TODO make index file name configurable
         this.indexFileName = "index.html";
+        this.contentTypes = new ConcurrentHashMap<>();
 
     }
 
@@ -123,6 +127,12 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
             this.contentRoot = Paths.get(new URI(config.getString("contentRoot")));
             LOG.info("Serving files from content root {}", this.contentRoot);
 
+            final List<HierarchicalConfiguration> contentTypeConfigs = config.configurationsAt("contentTypes/type");
+            for (final HierarchicalConfiguration contentTypeConfig : contentTypeConfigs) {
+                final ContentType contentType = new ContentType(contentTypeConfig.getString("@mimeType"));
+                this.contentTypes.put(contentTypeConfig.getString("@fileExtension"), contentType);
+            }
+
         } catch (final URISyntaxException e) {
             throw new ConfigurationException("ContentRoot not valid");
         }
@@ -141,13 +151,14 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
             throws IOException {
         final Response response = new Response(StatusCodes.SUCCESSFUL_200_OK);
 
-        final ContentType contentType = this.getContentType(fileResourcePath);
-
         response.setEntity(new Entity(Files.newByteChannel(fileResourcePath)));
 
-        response.addField(CONTENT_TYPE, contentType);
         response.addField(LAST_MODIFIED, this.getLastModified(fileResourcePath));
         response.addField(CONTENT_LENGTH, attrs.size());
+        final ContentType contentType = this.getContentType(fileResourcePath);
+        if (contentType != null) {
+            response.addField(CONTENT_TYPE, contentType);
+        }
 
         return response;
     }
@@ -162,8 +173,26 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
     private ContentType getContentType(final Path fileResourcePath) {
 
         final String filename = fileResourcePath.getFileName().toString();
-        return ContentTypes.byFileName(filename);
+        final String extension = this.getFileExtension(filename);
+        if (extension != null && this.contentTypes.containsKey(extension)) {
+            return this.contentTypes.get(extension);
+        }
+        return null;
 
+    }
+
+    /**
+     * Determines the file extension for the given filename
+     * 
+     * @param filename
+     * @return the file extension or <code>null</code> if the file has no extension
+     */
+    private String getFileExtension(final String filename) {
+        final int extensionSeparator = filename.lastIndexOf('.');
+        if (extensionSeparator != -1) {
+            return filename.substring(extensionSeparator + 1);
+        }
+        return null;
     }
 
     /**

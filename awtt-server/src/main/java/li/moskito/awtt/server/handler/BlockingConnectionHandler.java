@@ -36,10 +36,13 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     @Override
     public void run() {
 
+        // create a thread pool for incoming connections according to configuration
         final ExecutorService connectionExecutorService = Executors.newFixedThreadPool(this.maxConnections);
 
+        // create a socket address from port configuration
         final SocketAddress bindAddress = new InetSocketAddress(this.port.getHostname(), this.port.getPortNumber());
 
+        // open the server socket (AutoCloseable)
         try (ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
 
             serverSocketChannel.bind(bindAddress);

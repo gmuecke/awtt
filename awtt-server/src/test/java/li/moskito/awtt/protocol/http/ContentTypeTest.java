@@ -1,17 +1,18 @@
-package li.moskito.awtt.common;
+package li.moskito.awtt.protocol.http;
 
 import static org.junit.Assert.assertEquals;
+import li.moskito.awtt.protocol.http.ContentType;
 
 import org.junit.Before;
 import org.junit.Test;
 
-public class CustomContentTypeTest {
+public class ContentTypeTest {
 
-    private CustomContentType subject;
+    private ContentType subject;
 
     @Before
     public void setUp() throws Exception {
-        this.subject = new CustomContentType("text/plain");
+        this.subject = new ContentType("text/plain");
     }
 
     @Test
