@@ -1,0 +1,62 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>li.moskito</groupId>
+	<artifactId>awtt</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>Assembled with Tinker Toys</name>
+
+	<properties>
+
+		<!-- Java Technology Versions -->
+		<jee.version>6.0</jee.version>
+		<javax.jcr.version>2.0</javax.jcr.version><!-- JCR Spec -->
+		<javax.json.version>1.0</javax.json.version>
+		<javax.json.impl.version>1.0.4</javax.json.impl.version>
+		<javax.enterprise.cdi-api.version>1.2</javax.enterprise.cdi-api.version>
+
+		<!-- Common Libraries Versions -->
+		<slf4j.version>1.7.6</slf4j.version>
+		<log4j.version>2.0-rc1</log4j.version>
+		<commons.codec>1.4</commons.codec>
+		<commons.configuration.version>1.10</commons.configuration.version>
+		<commons.collections>3.2.1</commons.collections>
+		
+		<xalan.version>2.7.1</xalan.version>
+		<commons.lang.version>2.2</commons.lang.version>
+		<commons.httpclient.version>3.1</commons.httpclient.version>
+		<commons.jxpath.version>1.3</commons.jxpath.version>
+		<commons.io.version>2.4</commons.io.version>
+	    
+	    <deltaspike.version>0.7</deltaspike.version>
+
+		<!-- Test Dependency Versions -->
+		<junit.version>4.11</junit.version>
+		<mockito.version>1.9.5</mockito.version>
+		
+		<!-- 
+		<cucumber.version>1.1.5</cucumber.version>
+		<selenium.version>2.40.0</selenium.version>
+		<arquillian.version>1.1.2.Final</arquillian.version>
+		<jmeter.version>2.10</jmeter.version>
+		<cukespace.version>1.5.5</cukespace.version>
+		<arquillian-jacoco.version>1.0.0.Alpha6</arquillian-jacoco.version>
+		<arquillian-performance-impl.version>1.0.0.CR1</arquillian-performance-impl.version>
+		<powermock.version>1.5.4</powermock.version>
+		<weld.se.version>2.2.1.Final</weld.se.version>
+		
+
+		<shrinkwrap-resolver.version>2.1.1</shrinkwrap-resolver.version>
+		
+		<xml.apis.version>1.4.01</xml.apis.version>
+		<http.components.version>4.3.2</http.components.version>
+		<http.client.version>4.3</http.client.version>
+ 		-->
+	</properties>
+
+
+	<modules>
+		<module>awtt-server</module>
+	</modules>
+</project>
