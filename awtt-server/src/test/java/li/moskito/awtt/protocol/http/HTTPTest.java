@@ -135,7 +135,7 @@ public class HTTPTest {
 
     @Test
     public void testSerializeResponseHeader() throws Exception {
-        final Response response = new Response(Version.HTTP_1_1, StatusCodes.SUCCESSFUL_200_OK);
+        final Response response = new Response(Version.HTTP_1_1, StatusCodes.OK);
         response.addField(ResponseHeaderFieldDefinitions.CONTENT_LENGTH, "200");
 
         final CharBuffer buf = HTTP.serializeResponseHeader(response);

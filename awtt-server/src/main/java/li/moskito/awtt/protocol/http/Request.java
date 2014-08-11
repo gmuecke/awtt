@@ -11,7 +11,7 @@ import java.net.URI;
 public class Request extends Message<RequestHeaderFieldDefinitions> {
 
     private final Commands command;
-    private final URI          resource;
+    private final URI resource;
 
     /**
      * @param command

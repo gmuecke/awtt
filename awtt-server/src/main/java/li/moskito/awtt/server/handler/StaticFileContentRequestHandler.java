@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -25,7 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import li.moskito.awtt.protocol.http.Commands;
 import li.moskito.awtt.protocol.http.ContentType;
 import li.moskito.awtt.protocol.http.Entity;
+import li.moskito.awtt.protocol.http.HTTP;
+import li.moskito.awtt.protocol.http.Message;
 import li.moskito.awtt.protocol.http.Request;
+import li.moskito.awtt.protocol.http.RequestHeaderFieldDefinitions;
 import li.moskito.awtt.protocol.http.Response;
 import li.moskito.awtt.protocol.http.StatusCodes;
 import li.moskito.awtt.server.Configurable;
@@ -38,7 +42,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Gerald
  */
-public class StaticFileContentRequestHandler implements RequestHandler, Configurable {
+public class StaticFileContentRequestHandler extends HttpRequestHandler implements Configurable {
 
     /**
      * SLF4J Logger for this class
@@ -77,48 +81,74 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
     }
 
     @Override
-    public Response process(final Request request) {
-
-        switch (request.getCommand()) {
-            case GET:
-                final URI resource = request.getResource();
-                LOG.debug("Requested to read resource {}", resource);
-                final StringTokenizer tok = new StringTokenizer(resource.getPath(), "/");
-                final String[] pathElements = new String[tok.countTokens()];
-                int i = 0;
-                while (tok.hasMoreTokens()) {
-                    pathElements[i++] = tok.nextToken();
-                }
-                // TODO sanitize resource path to prevent sandbox escape
-                final Path resourcePath = Paths.get(this.contentRoot.toString(), pathElements);
-                LOG.debug("Resolved ResourcePath {}", resourcePath);
-
-                try {
-                    final BasicFileAttributes attrs = Files.readAttributes(resourcePath, BasicFileAttributes.class);
-                    final Path fileResourcePath;
-
-                    if (attrs.isDirectory()) {
-                        fileResourcePath = resourcePath.resolve(this.indexFileName);
-                        // TODO add support of listing directory contents if index file does not exist
-                    } else {
-                        fileResourcePath = resourcePath;
-                    }
-
-                    if (Files.isRegularFile(fileResourcePath)) {
-
-                        return this.createFileContentResponse(fileResourcePath, attrs);
-
-                    }
-                } catch (final IOException e) {
-                    LOG.error("Error reading resource {}", resourcePath, e);
-                    return new Response(StatusCodes.SERVER_ERR_500_INTERNAL_SERVER_ERROR);
-                }
-                return new Response(StatusCodes.CLIENT_ERR_404_NOT_FOUND);
-            default:
-                LOG.warn("Unsuppported Command '{}'", request.getCommand());
-
+    protected Response onGet(final Request request) {
+        final URI resource = request.getResource();
+        LOG.debug("Requested to read resource {}", resource);
+        final StringTokenizer tok = new StringTokenizer(resource.getPath(), "/");
+        final String[] pathElements = new String[tok.countTokens()];
+        int i = 0;
+        while (tok.hasMoreTokens()) {
+            pathElements[i++] = tok.nextToken();
         }
-        return null;
+        // TODO AWTT-7 sanitize resource path to prevent sandbox escape
+        final Path resourcePath = Paths.get(this.contentRoot.toString(), pathElements);
+        LOG.debug("Resolved ResourcePath {}", resourcePath);
+
+        try {
+            final BasicFileAttributes attrs = Files.readAttributes(resourcePath, BasicFileAttributes.class);
+            final Path fileResourcePath;
+
+            if (attrs.isDirectory()) {
+                fileResourcePath = resourcePath.resolve(this.indexFileName);
+                // TODO AWTT-13 add support of listing directory contents if index file does not exist
+            } else {
+                fileResourcePath = resourcePath;
+            }
+
+            if (Files.isRegularFile(fileResourcePath)) {
+                if (this.isModified(request, fileResourcePath)) {
+                    return this.createFileContentResponse(fileResourcePath, attrs);
+                } else {
+                    return HTTP.createResponse(StatusCodes.NOT_MODIFIED);
+                }
+
+            }
+        } catch (final IOException e) {
+            LOG.error("Error reading resource {}", resourcePath, e);
+            return new Response(StatusCodes.INTERNAL_SERVER_ERROR);
+        }
+        return new Response(StatusCodes.NOT_FOUND);
+    }
+
+    /**
+     * Determines if the file is modified according to the If-Modified-Since header
+     * 
+     * @param request
+     *            the request containing the headers
+     * @param fileResourcePath
+     *            the fileResource that should be checked regarding modification date
+     * @return <code>true</code> if the file was modified since the date in the request
+     * @throws IOException
+     */
+    private boolean isModified(final Message<RequestHeaderFieldDefinitions> request, final Path fileResourcePath)
+            throws IOException {
+
+        if (request.hasField(RequestHeaderFieldDefinitions.IF_MODIFIED_SINCE)) {
+
+            final String date = request.getField(RequestHeaderFieldDefinitions.IF_MODIFIED_SINCE).getValue();
+            try {
+
+                final Date ifModifiedDateDate = HTTP_DATE_FORMATTER.get().parse(date);
+                final Date systemDate = new Date(System.currentTimeMillis());
+                final Date modifiedDate = this.getLastModifiedDate(fileResourcePath);
+
+                return ifModifiedDateDate.after(systemDate) || ifModifiedDateDate.before(modifiedDate);
+
+            } catch (final ParseException e) {
+                LOG.debug("Could not parse date {}", date, e);
+            }
+        }
+        return true;
     }
 
     @Override
@@ -151,7 +181,7 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
      */
     private Response createFileContentResponse(final Path fileResourcePath, final BasicFileAttributes attrs)
             throws IOException {
-        final Response response = new Response(StatusCodes.SUCCESSFUL_200_OK);
+        final Response response = new Response(StatusCodes.OK);
 
         response.setEntity(new Entity(Files.newByteChannel(fileResourcePath)));
 
@@ -206,8 +236,19 @@ public class StaticFileContentRequestHandler implements RequestHandler, Configur
      * @throws IOException
      */
     private String getLastModified(final Path fileResourcePath) throws IOException {
-        final Date modifiedTime = new Date(Files.getLastModifiedTime(fileResourcePath).toMillis());
-        final String modifiedTimeString = HTTP_DATE_FORMATTER.get().format(modifiedTime);
-        return modifiedTimeString;
+        final Date modifiedTime = this.getLastModifiedDate(fileResourcePath);
+        return HTTP_DATE_FORMATTER.get().format(modifiedTime);
+    }
+
+    /**
+     * Determines the date of the last modification of the specified Resource
+     * 
+     * @param path
+     *            the resource to check
+     * @return the date of the last modification
+     * @throws IOException
+     */
+    private Date getLastModifiedDate(final Path path) throws IOException {
+        return new Date(Files.getLastModifiedTime(path).toMillis());
     }
 }

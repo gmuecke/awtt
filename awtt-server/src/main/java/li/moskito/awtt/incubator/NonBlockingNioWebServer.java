@@ -12,12 +12,12 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import li.moskito.awtt.server.RequestWorker;
-import li.moskito.awtt.server.handler.RequestHandler;
 import li.moskito.awtt.server.handler.StaticFileContentRequestHandler;
 
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class NonBlockingNioWebServer {
     public static void main(final String[] args) {
 
         final int port = 8080; // TODO make configurable
-        final RequestHandler handler = new StaticFileContentRequestHandler(); // TODO make configurable
+        final StaticFileContentRequestHandler handler = new StaticFileContentRequestHandler(); // TODO make configurable
 
         final SocketAddress bindAddress = new InetSocketAddress(port);
 
@@ -78,7 +78,7 @@ public class NonBlockingNioWebServer {
                         LOG.info("Key {} is readable", key);
                         // dispatch the processing of a client to a separate thread
                         final SocketChannel client = (SocketChannel) key.channel();
-                        final Runnable worker = new RequestWorker(client, Arrays.asList(handler));
+                        final Runnable worker = new RequestWorker(client, (List) Arrays.asList(handler));
                         // executor.execute(worker);
                         worker.run();
                     }

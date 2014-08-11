@@ -6,7 +6,7 @@
 				class="li.moskito.awtt.server.handler.BlockingConnectionHandler">
 				<maxConnections>5</maxConnections>
 			</connectionHandler>
-			<requestHandlers>
+			<messageHandlers>
 				<handler
 					class="li.moskito.awtt.server.handler.StaticFileContentRequestHandler">
 					<contentRoot>file:/C:/http/htdocs</contentRoot>
@@ -27,7 +27,7 @@
 						<type mimeType="application/pdf" fileExtension="pdf" />
 					</contentTypes>
 				</handler>
-			</requestHandlers>
+			</messageHandlers>
 		</listenPort>
 	</ports>
 </awttServer>

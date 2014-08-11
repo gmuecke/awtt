@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import li.moskito.awtt.protocol.http.Request;
 import li.moskito.awtt.protocol.http.Response;
 import li.moskito.awtt.server.handler.ConnectionHandler;
-import li.moskito.awtt.server.handler.RequestHandler;
+import li.moskito.awtt.server.handler.MessageHandler;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -38,9 +38,9 @@ public class MultiportServerTest {
         this.config.addProperty("ports/listenPort/connectionHandler", "");
         this.config.addProperty("ports/listenPort/connectionHandler/@class",
                 "li.moskito.awtt.server.MultiportServerTest$TestConnectionHandler");
-        this.config.addProperty("ports/listenPort/requestHandlers", "");
-        this.config.addProperty("ports/listenPort/requestHandlers/handler", "");
-        this.config.addProperty("ports/listenPort/requestHandlers/handler/@class",
+        this.config.addProperty("ports/listenPort/messageHandlers", "");
+        this.config.addProperty("ports/listenPort/messageHandlers/handler", "");
+        this.config.addProperty("ports/listenPort/messageHandlers/handler/@class",
                 "li.moskito.awtt.server.MultiportServerTest$TestRequestHandler");
 
     }
@@ -61,10 +61,10 @@ public class MultiportServerTest {
         assertNotNull(port);
         assertEquals(InetAddress.getByName("localhost"), port.getHostname());
         assertEquals(11000, port.getPortNumber());
-        assertEquals(1, port.getRequestHandlers().size());
+        assertEquals(1, port.getMessageHandlers().size());
 
         // test if port was bound to connection handler
-        assertEquals(port.getRequestHandlers().get(0), TestRequestHandler.instances.get(0));
+        assertEquals(port.getMessageHandlers().get(0), TestRequestHandler.instances.get(0));
 
         this.subject.startServer();
         Thread.sleep(100); // wait some ms for the executer to execute his task
@@ -72,7 +72,7 @@ public class MultiportServerTest {
 
     }
 
-    public static final class TestRequestHandler implements RequestHandler, Configurable {
+    public static final class TestRequestHandler implements MessageHandler<Request, Response>, Configurable {
 
         public static final List<TestRequestHandler> instances = new CopyOnWriteArrayList<>();
         private boolean configured;

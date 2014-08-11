@@ -8,18 +8,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * @author Gerald
  */
 public class Channels {
-
-    /**
-     * SLF4J Logger for this class
-     */
-    private static final Logger LOG = LoggerFactory.getLogger(Channels.class);
 
     public static void stream(final ReadableByteChannel src, final WritableByteChannel dest) throws IOException {
         // streaming implementation from

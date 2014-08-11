@@ -30,9 +30,9 @@ public abstract class Message<T extends HeaderFieldDefinition> {
         }
     }
 
-    private final Version                version;
+    private final Version version;
     private final Map<T, HeaderField<T>> fields;
-    private Entity                       entity;
+    private Entity entity;
 
     /**
      * @param version
@@ -76,6 +76,14 @@ public abstract class Message<T extends HeaderFieldDefinition> {
 
     public HeaderField<T> getField(final T fieldName) {
         return this.fields.get(fieldName);
+    }
+
+    /**
+     * @param fieldName
+     * @return
+     */
+    public boolean hasField(final T fieldName) {
+        return this.fields.containsKey(fieldName);
     }
 
     public boolean hasEntity() {

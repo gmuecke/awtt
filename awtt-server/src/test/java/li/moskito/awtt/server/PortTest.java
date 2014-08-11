@@ -9,7 +9,9 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import li.moskito.awtt.server.handler.RequestHandler;
+import li.moskito.awtt.protocol.http.Request;
+import li.moskito.awtt.protocol.http.Response;
+import li.moskito.awtt.server.handler.MessageHandler;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,7 +25,7 @@ public class PortTest {
     @Mock
     private InetAddress hostname;
     @Mock
-    private RequestHandler handler;
+    private MessageHandler<Request, Response> handler;
 
     private final int portNumber = 100;
 
@@ -46,35 +48,35 @@ public class PortTest {
     }
 
     @Test
-    public void testGetRequestHandlers() throws Exception {
-        assertNotNull(this.port.getRequestHandlers());
-        assertTrue(this.port.getRequestHandlers().isEmpty());
+    public void testGetMessageHandlers() throws Exception {
+        assertNotNull(this.port.getMessageHandlers());
+        assertTrue(this.port.getMessageHandlers().isEmpty());
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testGetHandlers_addToResult_fail() throws Exception {
-        this.port.getRequestHandlers().add(this.handler);
+        this.port.getMessageHandlers().add(this.handler);
 
     }
 
     @Test
     public void testAddHandler() throws Exception {
-        this.port.addRequestHandler(this.handler);
-        assertNotNull(this.port.getRequestHandlers());
-        assertTrue(this.port.getRequestHandlers().contains(this.handler));
+        this.port.addMessageHandler(this.handler);
+        assertNotNull(this.port.getMessageHandlers());
+        assertTrue(this.port.getMessageHandlers().contains(this.handler));
     }
 
     @Test
     public void testAddHandlers() throws Exception {
-        final List<RequestHandler> handlers = new ArrayList<>();
-        final RequestHandler handler1 = mock(RequestHandler.class);
-        final RequestHandler handler2 = mock(RequestHandler.class);
+        final List<MessageHandler<?, ?>> handlers = new ArrayList<>();
+        final MessageHandler<?, ?> handler1 = mock(MessageHandler.class);
+        final MessageHandler<?, ?> handler2 = mock(MessageHandler.class);
         handlers.add(handler1);
         handlers.add(handler2);
-        this.port.addRequestHandlers(handlers);
-        assertNotNull(this.port.getRequestHandlers());
-        assertTrue(this.port.getRequestHandlers().contains(handler1));
-        assertTrue(this.port.getRequestHandlers().contains(handler2));
+        this.port.addMessageHandlers(handlers);
+        assertNotNull(this.port.getMessageHandlers());
+        assertTrue(this.port.getMessageHandlers().contains(handler1));
+        assertTrue(this.port.getMessageHandlers().contains(handler2));
     }
 
 }

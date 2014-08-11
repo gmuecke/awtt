@@ -6,7 +6,6 @@ package li.moskito.awtt.server;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
 import java.util.List;
 
 import li.moskito.awtt.protocol.http.HTTP;
@@ -15,7 +14,7 @@ import li.moskito.awtt.protocol.http.Request;
 import li.moskito.awtt.protocol.http.Response;
 import li.moskito.awtt.protocol.http.StatusCodes;
 import li.moskito.awtt.protocol.http.Version;
-import li.moskito.awtt.server.handler.RequestHandler;
+import li.moskito.awtt.server.handler.MessageHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,20 +33,18 @@ public class RequestWorker implements Runnable {
 
     private final ByteBuffer readBuffer;
     private final ByteBuffer writeBuffer;
-    private final Charset charset;
 
-    private final List<RequestHandler> handlers;
+    private final List<MessageHandler<?, ?>> handlers;
 
     /**
      * @param channel
      */
-    public RequestWorker(final SocketChannel channel, final List<RequestHandler> handlers) {
+    public RequestWorker(final SocketChannel channel, final List<MessageHandler<?, ?>> handlers) {
         this.channel = channel;
         this.handlers = handlers;
         // TODO make buffer sizes configurable
         this.readBuffer = ByteBuffer.allocateDirect(1024);
         this.writeBuffer = ByteBuffer.allocateDirect(1024);
-        this.charset = Charset.forName("ISO-8859-1"); // TODO make charset configurable
     }
 
     @Override
@@ -81,7 +78,7 @@ public class RequestWorker implements Runnable {
             LOG.error("Error processing request", e);
         } catch (final HttpProtocolException e) {
             LOG.error("Could not process request", e);
-            this.writeBuffer.put((Version.HTTP_1_1 + " " + StatusCodes.CLIENT_ERR_400_BAD_REQUEST + "\r\n").getBytes());
+            this.writeBuffer.put((Version.HTTP_1_1 + " " + StatusCodes.BAD_REQUEST + "\r\n").getBytes());
             this.writeBuffer.flip();
             try {
                 this.channel.write(this.writeBuffer);
@@ -104,13 +101,16 @@ public class RequestWorker implements Runnable {
      */
     private Response handleRequest(final Request request) throws IOException {
         LOG.info("Processing Request {}", request);
-        for (final RequestHandler handler : this.handlers) {
-            if (handler.accepts(request)) {
-                return handler.process(request);
+        for (final MessageHandler<?, ?> handler : this.handlers) {
+
+            // TODO refactor request worker
+            @SuppressWarnings("unchecked")
+            final MessageHandler<Request, Response> httpHandler = (MessageHandler<Request, Response>) handler;
+            if (httpHandler.accepts(request)) {
+                return httpHandler.process(request);
             }
         }
-        // TODO add default response (something like unable to process)
-        return null;
+        return HTTP.createResponse(StatusCodes.NOT_IMPLEMENTED);
     }
 
 }

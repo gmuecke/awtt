@@ -92,7 +92,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     private void dispatchClientConnection(final SocketChannel client, final ExecutorService connectionExecutorService)
             throws IOException {
         // create a new worker for the incoming connection
-        final Runnable worker = new RequestWorker(client, this.port.getRequestHandlers());
+        final Runnable worker = new RequestWorker(client, this.port.getMessageHandlers());
         // and dispatch it to the thread pool
         connectionExecutorService.execute(worker);
     }

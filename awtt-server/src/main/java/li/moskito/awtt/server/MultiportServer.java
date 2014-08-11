@@ -11,12 +11,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import li.moskito.awtt.server.handler.ConnectionHandler;
-import li.moskito.awtt.server.handler.RequestHandler;
+import li.moskito.awtt.server.handler.MessageHandler;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * WebServer Implementation based on blocking java.nio Channels
@@ -25,10 +23,6 @@ import org.slf4j.LoggerFactory;
  */
 public class MultiportServer implements Server {
 
-    /**
-     * SLF4J Logger for this class
-     */
-    private static final Logger LOG = LoggerFactory.getLogger(MultiportServer.class);
     private final List<ConnectionHandler> connectionHandlers;
 
     /**
@@ -61,10 +55,10 @@ public class MultiportServer implements Server {
             final ConnectionHandler connectionHandler = this.createConnectionHandler(portConfig
                     .configurationAt("connectionHandler"));
 
-            final List<RequestHandler> requestHandlers = this.createRequestHandlers(portConfig
-                    .configurationsAt("requestHandlers/handler"));
+            final List<MessageHandler<?, ?>> requestHandlers = this.createMessageHandlers(portConfig
+                    .configurationsAt("messageHandlers/handler"));
 
-            port.addRequestHandlers(requestHandlers);
+            port.addMessageHandlers(requestHandlers);
             connectionHandler.bind(port);
 
             this.connectionHandlers.add(connectionHandler);
@@ -125,14 +119,17 @@ public class MultiportServer implements Server {
      * @return
      * @throws ConfigurationException
      */
-    private List<RequestHandler> createRequestHandlers(final List<HierarchicalConfiguration> config)
+    private List<MessageHandler<?, ?>> createMessageHandlers(final List<HierarchicalConfiguration> config)
             throws ConfigurationException {
-        final List<RequestHandler> handlers = new ArrayList<>();
+        final List<MessageHandler<?, ?>> handlers = new ArrayList<>();
         for (final HierarchicalConfiguration handlerConfig : config) {
 
             try {
-                final RequestHandler handler = (RequestHandler) Class.forName(handlerConfig.getString("@class"))
-                        .newInstance();
+                //@formatter:off
+                final MessageHandler<?, ?> handler = 
+                     (MessageHandler<?, ?>) Class
+                        .forName(handlerConfig.getString("@class")).newInstance();
+                // @formatter:on
                 if (handler instanceof Configurable) {
                     ((Configurable) handler).configure(handlerConfig);
                 }

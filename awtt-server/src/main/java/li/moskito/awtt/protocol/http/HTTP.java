@@ -300,4 +300,15 @@ public final class HTTP {
         }
     }
 
+    /**
+     * Creates a Response with the given StatusCode
+     * 
+     * @param statusCode
+     *            the status code for the response
+     * @return
+     */
+    public static Response createResponse(final StatusCodes statusCode) {
+        return new Response(statusCode);
+    }
+
 }

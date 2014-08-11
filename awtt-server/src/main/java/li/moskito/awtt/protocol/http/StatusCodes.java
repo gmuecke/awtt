@@ -10,60 +10,178 @@ package li.moskito.awtt.protocol.http;
  */
 public enum StatusCodes {
 
-    // Info 1xx
-    INFO_100_CONTINUE(100, "Continue"),
-    INFO_101_SWITCH_PROTOCOLS(101, "Switching Protocols"),
+    /**
+     * Info: 100 Continue
+     */
+    CONTINUE(100, "Continue"),
+    /**
+     * Info: 101 Switch Protocols
+     */
+    SWITCH_PROTOCOLS(101, "Switching Protocols"),
 
-    // Sucessful 2xx
-    SUCCESSFUL_200_OK(200, "OK"),
-    SUCCESSFUL_201_CREATED(201, "Created"),
-    SUCCESSFUL_202_ACCEPTED(202, "Accepted"),
-    SUCCESSFUL_203_NON_AUTHORATIVE_INFORMATION(203, "Non-Authorative Information"),
-    SUCCESSFUL_204_NO_CONTENT(204, "No Content"),
-    SUCCESSFUL_205_RESET_CONTENT(205, "Reset Content"),
-    SUCCESSFUL_206_PARTIAL_CONTENT(206, "Partial Content"),
+    /**
+     * Successful: 200 OK
+     */
+    OK(200, "OK"),
+    /**
+     * Successful: 201 Created
+     */
+    CREATED(201, "Created"),
+    /**
+     * Successful: 202 Accepted
+     */
+    ACCEPTED(202, "Accepted"),
+    /**
+     * Successful: 203 Non-Authoritavie Information
+     */
+    NON_AUTHORATIVE_INFORMATION_203(203, "Non-Authorative Information"),
+    /**
+     * Successful: 204 No Content
+     */
+    NO_CONTENT(204, "No Content"),
+    /**
+     * Successful: 205 Reset Content
+     */
+    RESET_CONTENT(205, "Reset Content"),
+    /**
+     * Successful: 206 Partial Content
+     */
+    PARTIAL_CONTENT(206, "Partial Content"),
 
-    // Redirection 3xx
-    REDIRECTION_300_MULTIPLE_CHOICES(300, "Multiple Choices"),
-    REDIRECTION_301_MOVED_PERMANENTLY(301, "Moved Permanently"),
-    REDIRECTION_302_FOUND(302, "Found"),
-    REDIRECTION_303_SEE_OTHER(303, "See Other"),
-    REDIRECTION_304_NOT_MODIFIED(304, "Not Modified"),
-    REDIRECTION_305_USE_PROXY(305, "Use Proxy"),
-    REDIRECTION_306_UNUSED(306, "(Unused)"),
-    REDIRECTION_307_TEMPORARY_REDIRECT(307, "Temporary Redirect"),
+    /**
+     * Redirection: 300 Multiple Choices
+     */
+    MULTIPLE_CHOICES(300, "Multiple Choices"),
+    /**
+     * Redirection: 301 Moved Permanently
+     */
+    MOVED_PERMANENTLY(301, "Moved Permanently"),
+    /**
+     * Redirection: 302 Found
+     */
+    FOUND(302, "Found"),
+    /**
+     * Redirection: 303 See Other
+     */
+    SEE_OTHER(303, "See Other"),
+    /**
+     * Redirection: 304 Not Modified
+     */
+    NOT_MODIFIED(304, "Not Modified"),
+    /**
+     * Redirection: 305 Use Proxy
+     */
+    USE_PROXY(305, "Use Proxy"),
+    /**
+     * Redirection: 306 Unused
+     */
+    UNUSED(306, "(Unused)"),
+    /**
+     * Redirection: 307 Temporary Redirect
+     */
+    TEMPORARY_REDIRECT(307, "Temporary Redirect"),
 
-    // Client Error 4xx
-    CLIENT_ERR_400_BAD_REQUEST(400, "Bad Request"),
-    CLIENT_ERR_401_UNAUTHORIZED(401, "Unauthorized"),
-    CLIENT_ERR_402_PAYMENT_REQUIRED(402, "Payment Required"),
-    CLIENT_ERR_403_FORBIDDEN(403, "Forbidden"),
-    CLIENT_ERR_404_NOT_FOUND(404, "Not Found"),
-    CLIENT_ERR_405_METHOD_NOT_ALLOWED(405, "Method Not Allowed"),
-    CLIENT_ERR_406_NOT_ACCEPTABLE(406, "Not Acceptable"),
-    CLIENT_ERR_407_PROXY_AUTHENTICATION_REQUIRED(407, "Proxy Authentication Required"),
-    CLIENT_ERR_408_REQUEST_TIMEOUT(408, "Request Timeout"),
-    CLIENT_ERR_409_CONFLICT(409, "Conflict"),
-    CLIENT_ERR_410_GONE(410, "Gone"),
-    CLIENT_ERR_411_LENGTH_REQUIRED(411, "Length Required"),
-    CLIENT_ERR_412_PRECONDITION_FAILED(412, "Precondition Failed"),
-    CLIENT_ERR_413_REQUEST_ENTITY_TOO_LARGE(413, "Request Entity Too Large"),
-    CLIENT_ERR_414_REQUEST_URI_TOO_LONG(414, "Request-URI Too Long"),
-    CLIENT_ERR_415_UNSUPPORTED_MEDIA_TYPE(415, "Unsupported Media Type"),
-    CLIENT_ERR_416_REQUESTED_RANGE_NOT_SATISFIABLE(416, "Requested Range Not Satisfiable"),
-    CLIENT_ERR_417_EXPECTATION_FAILED(417, "Expectation Failed"),
+    /**
+     * Client Error: 400 Bad Request
+     */
+    BAD_REQUEST(400, "Bad Request"),
+    /**
+     * Client Error: 401 Unauthorized
+     */
+    UNAUTHORIZED(401, "Unauthorized"),
+    /**
+     * Client Error: 402 Payment Required
+     */
+    PAYMENT_REQUIRED(402, "Payment Required"),
+    /**
+     * Client Error: 403 Forbidden
+     */
+    FORBIDDEN(403, "Forbidden"),
+    /**
+     * Client Error: 404 Not Found
+     */
+    NOT_FOUND(404, "Not Found"),
+    /**
+     * Client Error: 405 Method Not Allowed
+     */
+    METHOD_NOT_ALLOWED(405, "Method Not Allowed"),
+    /**
+     * Client Error: 406 Not Acceptable
+     */
+    NOT_ACCEPTABLE(406, "Not Acceptable"),
+    /**
+     * Client Error: 407 Proxy Authentication Required
+     */
+    PROXY_AUTHENTICATION_REQUIRED(407, "Proxy Authentication Required"),
+    /**
+     * Client Error: 408 Request Timeout
+     */
+    REQUEST_TIMEOUT(408, "Request Timeout"),
+    /**
+     * Client Error: 409 Conflict
+     */
+    CONFLICT(409, "Conflict"),
+    /**
+     * Client Error: 410 Gone
+     */
+    GONE(410, "Gone"),
+    /**
+     * Client Error: 411 Length Required
+     */
+    LENGTH_REQUIRED(411, "Length Required"),
+    /**
+     * Client Error: 412 Precondition Failed
+     */
+    PRECONDITION_FAILED(412, "Precondition Failed"),
+    /**
+     * Client Error: 413 Request Entity Too Large
+     */
+    REQUEST_ENTITY_TOO_LARGE(413, "Request Entity Too Large"),
+    /**
+     * Client Error: 414 Request-URI Too Long
+     */
+    REQUEST_URI_TOO_LONG(414, "Request-URI Too Long"),
+    /**
+     * Client Error: 415 Unsupported Media Type
+     */
+    UNSUPPORTED_MEDIA_TYPE(415, "Unsupported Media Type"),
+    /**
+     * Client Error: 416 Request Range Not Satisfiable
+     */
+    REQUESTED_RANGE_NOT_SATISFIABLE(416, "Requested Range Not Satisfiable"),
+    /**
+     * Client Error: 417 Expectation Failed
+     */
+    EXPECTATION_FAILED(417, "Expectation Failed"),
 
-    // Server Error 5xx
-    SERVER_ERR_500_INTERNAL_SERVER_ERROR(500, "Internal Server Error"),
-    SERVER_ERR_501_NOT_IMPLEMENTED(501, "Not Implemented"),
-    SERVER_ERR_502_BAD_GATEWAY(502, "Bad Gateway"),
-    SERVER_ERR_503_SERVICE_UNAVAILABLE(503, "Service Unavailable"),
-    SERVER_ERR_504_GATEWAY_TIMEOUT(504, "Gateway Timeout"),
-    SERVER_ERR_505_HTTP_VERSION_NOT_SUPPORTED(505, "HTTP Version Not Supported"),
+    /**
+     * Server Error: 500 Internal Server Error
+     */
+    INTERNAL_SERVER_ERROR(500, "Internal Server Error"),
+    /**
+     * Server Error: 501 Not Implemented
+     */
+    NOT_IMPLEMENTED(501, "Not Implemented"),
+    /**
+     * Server Error: 502 Bad Gateway
+     */
+    BAD_GATEWAY(502, "Bad Gateway"),
+    /**
+     * Server Error: 503 Service Unavailable
+     */
+    SERVICE_UNAVAILABLE(503, "Service Unavailable"),
+    /**
+     * Server Error: 504 Gateway Timeout
+     */
+    GATEWAY_TIMEOUT(504, "Gateway Timeout"),
+    /**
+     * Server Error: 505 HTTP Version Not Supported
+     */
+    HTTP_VERSION_NOT_SUPPORTED(505, "HTTP Version Not Supported"),
 
     ;
     private String reason;
-    private int    code;
+    private int code;
 
     /**
      * 
