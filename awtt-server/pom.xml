@@ -7,7 +7,21 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>awtt-server</artifactId>
-	<name>Assembled with Tinker Toys</name>
+	<name>TinkerToy Server</name>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source>1.7</source>
+					<target>1.7</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
 	<dependencies>
 		<dependency>
@@ -25,7 +39,11 @@
 			<artifactId>commons-codec</artifactId>
 			<version>${commons.codec}</version>
 		</dependency>
-
+		<dependency>
+			<groupId>commons-jxpath</groupId>
+			<artifactId>commons-jxpath</artifactId>
+			<version>${commons.jxpath.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>

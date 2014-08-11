@@ -23,7 +23,7 @@ public enum ResponseHeaderFieldDefinitions implements HeaderFieldDefinition {
     CONTENT_MD5("Content-MD5"),
     // CONTENT_DISPOSITION("Content-Disposition"), //considered harmful (wikipedia)
     CONTENT_RANGE("Content-Range"),
-    // CONTENT_SECURITY_POLICY("Content-Security-Polica"), //not part of http11 standard
+    // CONTENT_SECURITY_POLICY("Content-Security-Police"), //not part of http11 standard
     CONTENT_TYPE("Content-Type"),
     DATE("Date"),
     ETAG("ETag"),

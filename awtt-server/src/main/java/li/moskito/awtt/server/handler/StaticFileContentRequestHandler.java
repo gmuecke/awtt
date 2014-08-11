@@ -1,7 +1,7 @@
 /**
  * 
  */
-package li.moskito.awtt.server;
+package li.moskito.awtt.server.handler;
 
 import static li.moskito.awtt.protocol.http.ResponseHeaderFieldDefinitions.CONTENT_LENGTH;
 import static li.moskito.awtt.protocol.http.ResponseHeaderFieldDefinitions.CONTENT_TYPE;
@@ -16,34 +16,42 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentHashMap;
 
-import li.moskito.awtt.common.ContentType;
-import li.moskito.awtt.common.ContentTypes;
+import li.moskito.awtt.protocol.http.Commands;
+import li.moskito.awtt.protocol.http.ContentType;
 import li.moskito.awtt.protocol.http.Entity;
 import li.moskito.awtt.protocol.http.Request;
 import li.moskito.awtt.protocol.http.Response;
 import li.moskito.awtt.protocol.http.StatusCodes;
+import li.moskito.awtt.server.Configurable;
 
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * @author Gerald
  */
-public class StaticFileContentRequestHandler implements RequestHandler {
+public class StaticFileContentRequestHandler implements RequestHandler, Configurable {
 
     /**
      * SLF4J Logger for this class
      */
     private static final Logger LOG = LoggerFactory.getLogger(StaticFileContentRequestHandler.class);
 
-    private final Path contentRoot;
+    private Path contentRoot;
 
-    private String indexFileName;
+    private final String indexFileName;
 
     private final static String HTTP_DATE_FORMAT = "EEE, d MMM yyy HH:mm:ss zzz";
+
+    private final Map<String, ContentType> contentTypes;
 
     // Thread safe date formatter
     private static final ThreadLocal<SimpleDateFormat> HTTP_DATE_FORMATTER = new ThreadLocal<SimpleDateFormat>() {
@@ -57,22 +65,15 @@ public class StaticFileContentRequestHandler implements RequestHandler {
      * 
      */
     public StaticFileContentRequestHandler() {
+        // TODO make index file name configurable
+        this.indexFileName = "index.html";
+        this.contentTypes = new ConcurrentHashMap<>();
 
-        try {
-            // TODO make the base path configurable
-            this.contentRoot = Paths.get(new URI("file:/c:/http/htdocs/"));
-            // TODO make index file name configurable
-            this.indexFileName = "index.html";
-            LOG.info("Serving files from content root {}", this.contentRoot);
-
-        } catch (final URISyntaxException e) {
-            throw new RuntimeException("Invalid ContentRoot");
-        }
     }
 
     @Override
     public boolean accepts(final Request request) {
-        return true;
+        return request.getCommand() == Commands.GET;
     }
 
     @Override
@@ -120,6 +121,25 @@ public class StaticFileContentRequestHandler implements RequestHandler {
         return null;
     }
 
+    @Override
+    public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
+
+        try {
+            this.contentRoot = Paths.get(new URI(config.getString("contentRoot")));
+            LOG.info("Serving files from content root {}", this.contentRoot);
+
+            final List<HierarchicalConfiguration> contentTypeConfigs = config.configurationsAt("contentTypes/type");
+            for (final HierarchicalConfiguration contentTypeConfig : contentTypeConfigs) {
+                final ContentType contentType = new ContentType(contentTypeConfig.getString("@mimeType"));
+                final String fileExtension = contentTypeConfig.getString("@fileExtension");
+                this.contentTypes.put(fileExtension, contentType);
+            }
+
+        } catch (final URISyntaxException e) {
+            throw new ConfigurationException("ContentRoot not valid");
+        }
+    }
+
     /**
      * Creates a response for returning the content of a file
      * 
@@ -133,13 +153,14 @@ public class StaticFileContentRequestHandler implements RequestHandler {
             throws IOException {
         final Response response = new Response(StatusCodes.SUCCESSFUL_200_OK);
 
-        final ContentType contentType = this.getContentType(fileResourcePath);
-
         response.setEntity(new Entity(Files.newByteChannel(fileResourcePath)));
 
-        response.addField(CONTENT_TYPE, contentType);
         response.addField(LAST_MODIFIED, this.getLastModified(fileResourcePath));
         response.addField(CONTENT_LENGTH, attrs.size());
+        final ContentType contentType = this.getContentType(fileResourcePath);
+        if (contentType != null) {
+            response.addField(CONTENT_TYPE, contentType);
+        }
 
         return response;
     }
@@ -154,8 +175,26 @@ public class StaticFileContentRequestHandler implements RequestHandler {
     private ContentType getContentType(final Path fileResourcePath) {
 
         final String filename = fileResourcePath.getFileName().toString();
-        return ContentTypes.byFileName(filename);
+        final String extension = this.getFileExtension(filename);
+        if (extension != null && this.contentTypes.containsKey(extension)) {
+            return this.contentTypes.get(extension);
+        }
+        return null;
 
+    }
+
+    /**
+     * Determines the file extension for the given filename
+     * 
+     * @param filename
+     * @return the file extension or <code>null</code> if the file has no extension
+     */
+    private String getFileExtension(final String filename) {
+        final int extensionSeparator = filename.lastIndexOf('.');
+        if (extensionSeparator != -1) {
+            return filename.substring(extensionSeparator + 1);
+        }
+        return null;
     }
 
     /**

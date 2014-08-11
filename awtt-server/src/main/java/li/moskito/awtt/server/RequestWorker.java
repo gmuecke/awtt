@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.util.List;
 
 import li.moskito.awtt.protocol.http.HTTP;
 import li.moskito.awtt.protocol.http.HttpProtocolException;
@@ -14,6 +15,7 @@ import li.moskito.awtt.protocol.http.Request;
 import li.moskito.awtt.protocol.http.Response;
 import li.moskito.awtt.protocol.http.StatusCodes;
 import li.moskito.awtt.protocol.http.Version;
+import li.moskito.awtt.server.handler.RequestHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,29 +28,26 @@ public class RequestWorker implements Runnable {
     /**
      * SLF4J Logger for this class
      */
-    private static final Logger  LOG = LoggerFactory.getLogger(RequestWorker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RequestWorker.class);
 
-    private final SocketChannel  channel;
+    private final SocketChannel channel;
 
-    private final ByteBuffer     readBuffer;
-    private final ByteBuffer     writeBuffer;
-    private final Charset        charset;
+    private final ByteBuffer readBuffer;
+    private final ByteBuffer writeBuffer;
+    private final Charset charset;
 
-    private final RequestHandler handler;
-
-    private final long           keepAliveTimeout;
+    private final List<RequestHandler> handlers;
 
     /**
      * @param channel
      */
-    public RequestWorker(final SocketChannel channel, final RequestHandler handler) {
+    public RequestWorker(final SocketChannel channel, final List<RequestHandler> handlers) {
         this.channel = channel;
-        this.handler = handler;
+        this.handlers = handlers;
         // TODO make buffer sizes configurable
         this.readBuffer = ByteBuffer.allocateDirect(1024);
         this.writeBuffer = ByteBuffer.allocateDirect(1024);
         this.charset = Charset.forName("ISO-8859-1"); // TODO make charset configurable
-        this.keepAliveTimeout = 5000L;
     }
 
     @Override
@@ -57,12 +56,10 @@ public class RequestWorker implements Runnable {
         try {
 
             LOG.info("Processing connection request from {}", this.channel.getRemoteAddress());
-            // TODO add a timeout to terminate kept-alive connection
-            final long start = System.currentTimeMillis();
-            while (this.channel.read(this.readBuffer) != -1
-                    || start + this.keepAliveTimeout > System.currentTimeMillis()) {
+            while (this.channel.read(this.readBuffer) != -1) {
                 this.readBuffer.flip();
 
+                // TODO parse request from channel and keep the while loop open if there are more requests
                 final Request request = HTTP.parseRequest(this.charset.decode(this.readBuffer));
                 final Response response = this.handleRequest(request);
                 HTTP.sendResponse(response, this.channel, this.charset);
@@ -97,9 +94,12 @@ public class RequestWorker implements Runnable {
      */
     private Response handleRequest(final Request request) throws IOException {
         LOG.info("Processing Request {}", request);
-        if (this.handler.accepts(request)) {
-            return this.handler.process(request);
+        for (final RequestHandler handler : this.handlers) {
+            if (handler.accepts(request)) {
+                return handler.process(request);
+            }
         }
+        // TODO add default response (something like unable to process)
         return null;
     }
 

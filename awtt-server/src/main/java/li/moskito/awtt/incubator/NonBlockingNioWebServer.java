@@ -1,7 +1,7 @@
 /**
  * 
  */
-package li.moskito.awtt.server;
+package li.moskito.awtt.incubator;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,10 +10,15 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import li.moskito.awtt.server.RequestWorker;
+import li.moskito.awtt.server.handler.RequestHandler;
+import li.moskito.awtt.server.handler.StaticFileContentRequestHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +78,7 @@ public class NonBlockingNioWebServer {
                         LOG.info("Key {} is readable", key);
                         // dispatch the processing of a client to a separate thread
                         final SocketChannel client = (SocketChannel) key.channel();
-                        final Runnable worker = new RequestWorker(client, handler);
+                        final Runnable worker = new RequestWorker(client, Arrays.asList(handler));
                         // executor.execute(worker);
                         worker.run();
                     }
