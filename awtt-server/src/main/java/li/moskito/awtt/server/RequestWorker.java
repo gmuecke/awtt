@@ -38,8 +38,6 @@ public class RequestWorker implements Runnable {
 
     private final List<RequestHandler> handlers;
 
-    private final long keepAliveTimeout;
-
     /**
      * @param channel
      */
@@ -50,7 +48,6 @@ public class RequestWorker implements Runnable {
         this.readBuffer = ByteBuffer.allocateDirect(1024);
         this.writeBuffer = ByteBuffer.allocateDirect(1024);
         this.charset = Charset.forName("ISO-8859-1"); // TODO make charset configurable
-        this.keepAliveTimeout = 5000L;
     }
 
     @Override
@@ -59,12 +56,10 @@ public class RequestWorker implements Runnable {
         try {
 
             LOG.info("Processing connection request from {}", this.channel.getRemoteAddress());
-            // TODO add a timeout to terminate kept-alive connection
-            final long start = System.currentTimeMillis();
-            while (this.channel.read(this.readBuffer) != -1
-                    || start + this.keepAliveTimeout > System.currentTimeMillis()) {
+            while (this.channel.read(this.readBuffer) != -1) {
                 this.readBuffer.flip();
 
+                // TODO parse request from channel and keep the while loop open if there are more requests
                 final Request request = HTTP.parseRequest(this.charset.decode(this.readBuffer));
                 final Response response = this.handleRequest(request);
                 HTTP.sendResponse(response, this.channel, this.charset);

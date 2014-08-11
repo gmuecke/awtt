@@ -7,7 +7,6 @@ import java.net.URL;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.XMLConfiguration;
-import org.apache.commons.configuration.tree.ExpressionEngine;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 
 /**
@@ -27,12 +26,18 @@ public class Startup {
     }
 
     private static XMLConfiguration getDefaultConfiguration() throws ConfigurationException {
-
-        final ExpressionEngine engine = new XPathExpressionEngine();
         final URL url = Startup.class.getClassLoader().getResource("awttServerConfig.xml");
+        final XMLConfiguration xconf = loadConfiguration(url);
+        return xconf;
+    }
 
+    private static XMLConfiguration loadConfiguration(final URL url) throws ConfigurationException {
         final XMLConfiguration xconf = new XMLConfiguration(url);
-        xconf.setExpressionEngine(engine);
+        if (!"awttServer".equals(xconf.getRootElementName())) {
+            throw new ConfigurationException("Configuration is no awttServer configuration: "
+                    + xconf.getRootElementName());
+        }
+        xconf.setExpressionEngine(new XPathExpressionEngine());
         return xconf;
     }
 }
