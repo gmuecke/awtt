@@ -54,16 +54,26 @@ public class RequestWorker implements Runnable {
     public void run() {
 
         try {
-
             LOG.info("Processing connection request from {}", this.channel.getRemoteAddress());
+
+            // final long timeout = 5000L;
+            // long start = System.currentTimeMillis();
+
             while (this.channel.read(this.readBuffer) != -1) {
                 this.readBuffer.flip();
 
                 // TODO parse request from channel and keep the while loop open if there are more requests
-                final Request request = HTTP.parseRequest(this.charset.decode(this.readBuffer));
-                final Response response = this.handleRequest(request);
-                HTTP.sendResponse(response, this.channel, this.charset);
+                final Request request = HTTP.parseRequest(this.readBuffer);
+                if (request != null) {
+                    final Response response = this.handleRequest(request);
+                    HTTP.sendResponse(response, this.channel);
+                    // start = System.currentTimeMillis();
+                }
                 this.readBuffer.compact(); // clear the buffer for the next read
+
+                // if (start + timeout < System.currentTimeMillis()) {
+                // return;
+                // }
                 return;
             }
 
