@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.junit.Test;
@@ -82,7 +83,7 @@ public class HTTPTest {
             +"User-Agent: Mozilla/4.0\r\n"
             +"Host: some.example.com\r\n";
         // @formatter:on
-        final Request request = HTTP.parseRequest(requestString);
+        final Request request = HTTP.parseRequest(StandardCharsets.ISO_8859_1.encode(requestString));
         assertNotNull(request);
         assertEquals(Commands.GET, request.getCommand());
         assertEquals(new URI("/some/example"), request.getResource());

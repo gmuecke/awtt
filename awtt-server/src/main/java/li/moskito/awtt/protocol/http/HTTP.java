@@ -6,10 +6,12 @@ package li.moskito.awtt.protocol.http;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -40,7 +42,7 @@ public final class HTTP {
                          Pattern.compile("^("+getCommandRegexGroup()+") (\\S+) ("+getVersionRegexGroup()+")(\\r\\n)?$");
     private static final Pattern HTTP_REQUEST_FIELD_PATTERN = 
                          Pattern.compile("^("+getRequestHeaderFieldRegexGroup()+"):\\s*(.*)(\\r\\n)?$");
-    
+    private static final Charset CHARSET = StandardCharsets.ISO_8859_1;
     // @formatter:on
 
     /**
@@ -144,8 +146,8 @@ public final class HTTP {
      * @throws URISyntaxException
      * @throws IOException
      */
-    public static Request parseRequest(final String request) throws HttpProtocolException, IOException {
-        return parseRequest(CharBuffer.wrap(request));
+    public static Request parseRequest(final ByteBuffer readBuffer) throws HttpProtocolException, IOException {
+        return parseRequest(CHARSET.decode(readBuffer));
     }
 
     /**
@@ -161,7 +163,7 @@ public final class HTTP {
         // skip to end of line
         final String requestLine = readLine(charBuffer);
         if (requestLine == null) {
-            throw new HttpProtocolException("Request was empty");
+            return null;
         }
         final Request result = parseRequestLine(requestLine);
 
@@ -252,19 +254,22 @@ public final class HTTP {
     }
 
     /**
+     * Sends a response header over the socket channel
+     * 
      * @param response
+     *            the response to send
      * @param channel
-     * @param charset
-     * @return
+     *            the channel to send the response
      * @throws IOException
      */
-    public static void sendResponseHeader(final Response response, final SocketChannel channel, final Charset charset)
-            throws IOException {
+    public static void sendResponseHeader(final Response response, final SocketChannel channel) throws IOException {
         final CharBuffer output = serializeResponseHeader(response);
-        channel.write(charset.encode(output));
+        channel.write(CHARSET.encode(output));
     }
 
     /**
+     * Sends an entity - the body of a http message - over the socket channel
+     * 
      * @param entity
      *            the entity to be streamed to the channel
      * @param outputChannel
@@ -279,15 +284,15 @@ public final class HTTP {
     }
 
     /**
+     * Sends a response to the given socket channel
+     * 
      * @param response
      * @param channel
-     * @param charset
      * @return
      * @throws IOException
      */
-    public static void sendResponse(final Response response, final SocketChannel channel, final Charset charset)
-            throws IOException {
-        sendResponseHeader(response, channel, charset);
+    public static void sendResponse(final Response response, final SocketChannel channel) throws IOException {
+        sendResponseHeader(response, channel);
 
         final Entity entity = response.getEntity();
         if (entity != null) {
