@@ -1,0 +1,6 @@
+awtt-server/target/
+awtt-server/.settings/org.eclipse.jdt.core.prefs
+awtt-server/.settings/
+.settings/
+*.project
+*.classpath
