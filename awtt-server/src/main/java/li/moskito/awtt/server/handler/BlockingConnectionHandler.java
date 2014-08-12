@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import li.moskito.awtt.server.Configurable;
+import li.moskito.awtt.server.ConnectionControl;
 import li.moskito.awtt.server.Port;
 import li.moskito.awtt.server.RequestWorker;
 
@@ -31,9 +32,10 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
      */
     private static final Logger LOG = LoggerFactory.getLogger(BlockingConnectionHandler.class);
 
-    private int maxConnections = 5; // default
     private Port port;
     private final AtomicBoolean running = new AtomicBoolean(true);
+
+    private ConnectionControl connectionControl = ConnectionControl.DEFAULT_CONNECTION_CONTROL;
 
     @Override
     public void run() {
@@ -65,7 +67,8 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     private void handleConnections(final ServerSocketChannel serverSocketChannel) {
 
         // create a thread pool for incoming connections according to configuration
-        final ExecutorService connectionExecutorService = Executors.newFixedThreadPool(this.maxConnections);
+        final ExecutorService connectionExecutorService = Executors.newFixedThreadPool(this.connectionControl
+                .getMaxConnections());
 
         while (this.running.get()) {
             try {
@@ -92,7 +95,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     private void dispatchClientConnection(final SocketChannel client, final ExecutorService connectionExecutorService)
             throws IOException {
         // create a new worker for the incoming connection
-        final Runnable worker = new RequestWorker(client, this.port.getMessageHandlers());
+        final Runnable worker = new RequestWorker(client, this.port.getMessageHandlers(), this.connectionControl);
         // and dispatch it to the thread pool
         connectionExecutorService.execute(worker);
     }
@@ -113,7 +116,12 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
 
     @Override
     public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
-        this.maxConnections = config.getInt("maxConnections");
+        //@formatter:off
+        this.connectionControl = new ConnectionControl(
+                config.getInteger("maxConnections", ConnectionControl.DEFAULT_MAX_CONNECTIONS), 
+                config.getInteger("keepAlive", ConnectionControl.UNLIMITED),
+                config.getInteger("maxMessagesPerConnection", ConnectionControl.UNLIMITED));
+        //@formatter:on
     }
 
     @Override

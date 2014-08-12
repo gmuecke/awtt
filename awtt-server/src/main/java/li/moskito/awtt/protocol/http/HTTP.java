@@ -167,7 +167,7 @@ public final class HTTP {
         }
         final Request result = parseRequestLine(requestLine);
 
-        final List<HeaderField<RequestHeaderFieldDefinitions>> fields = new ArrayList<>();
+        final List<HeaderField<?>> fields = new ArrayList<>();
         for (String fieldLine = readLine(charBuffer); fieldLine != null;) {
             if (fieldLine.trim().isEmpty()) {
                 break; // reached end of header
@@ -243,7 +243,7 @@ public final class HTTP {
     public static CharBuffer serializeResponseHeader(final Response response) {
         final StringBuffer buf = new StringBuffer(128);
         buf.append(response.getVersion()).append(' ').append(response.getStatus()).append(CRLF);
-        for (final HeaderField<ResponseHeaderFieldDefinitions> field : response.getFields()) {
+        for (final HeaderField<?> field : response.getFields()) {
             buf.append(field).append(CRLF);
         }
         buf.append(CRLF);
@@ -309,6 +309,32 @@ public final class HTTP {
      */
     public static Response createResponse(final StatusCodes statusCode) {
         return new Response(statusCode);
+    }
+
+    /**
+     * The method checks the request for a keep alive information. If the client sends a 'close' token or has no
+     * keep-alive token and is of HTTP/1.0 version, the method returns 0. Otherwise it returns 1 for HTTP/1.1
+     * connections and HTTP/1.0 connections with keep alive token.
+     * 
+     * @param request
+     *            the request to be checked
+     * @return <code>true</code> if the connection has to be kept alive, <code>false</code> if not
+     */
+    public static boolean isKeepAlive(final Request request) {
+        final String connectionField;
+        if (request.hasField(RequestHeaderFieldDefinitions.CONNECTION)) {
+            connectionField = request.getField(RequestHeaderFieldDefinitions.CONNECTION).getValue();
+        } else {
+            connectionField = null;
+        }
+        switch (request.getVersion()) {
+            case HTTP_1_0:
+                return "keep-alive".equals(connectionField);
+            case HTTP_1_1:
+                return !"close".equals(connectionField);
+            default:
+                return true;
+        }
     }
 
 }

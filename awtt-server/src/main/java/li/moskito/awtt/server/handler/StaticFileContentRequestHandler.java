@@ -130,14 +130,13 @@ public class StaticFileContentRequestHandler extends HttpRequestHandler implemen
      * @return <code>true</code> if the file was modified since the date in the request
      * @throws IOException
      */
-    private boolean isModified(final Message<RequestHeaderFieldDefinitions> request, final Path fileResourcePath)
-            throws IOException {
+    private boolean isModified(final Message request, final Path fileResourcePath) throws IOException {
 
         if (request.hasField(RequestHeaderFieldDefinitions.IF_MODIFIED_SINCE)) {
 
             final String date = request.getField(RequestHeaderFieldDefinitions.IF_MODIFIED_SINCE).getValue();
             try {
-
+                // TODO fix is modified handling
                 final Date ifModifiedDateDate = HTTP_DATE_FORMATTER.get().parse(date);
                 final Date systemDate = new Date(System.currentTimeMillis());
                 final Date modifiedDate = this.getLastModifiedDate(fileResourcePath);

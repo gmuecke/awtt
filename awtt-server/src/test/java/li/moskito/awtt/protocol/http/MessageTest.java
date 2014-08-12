@@ -15,12 +15,11 @@ import org.junit.Test;
 
 public class MessageTest {
 
-    private Message<ResponseHeaderFieldDefinitions> responseMessage;
+    private Message responseMessage;
 
     @Before
     public void setUp() throws Exception {
-        this.responseMessage = new Message<ResponseHeaderFieldDefinitions>(Version.HTTP_1_0) {
-        };
+        this.responseMessage = new Message(Version.HTTP_1_0) {};
     }
 
     @Test
@@ -35,12 +34,12 @@ public class MessageTest {
                 ResponseHeaderFieldDefinitions.CONNECTION, "Keep-Alive");
         final HeaderField<ResponseHeaderFieldDefinitions> field2 = new HeaderField<>(
                 ResponseHeaderFieldDefinitions.CONTENT_LENGTH, "200");
-        final List<HeaderField<ResponseHeaderFieldDefinitions>> expected = new ArrayList<>();
+        final List<HeaderField<?>> expected = new ArrayList<>();
         expected.add(field1);
         expected.add(field2);
         this.responseMessage.addFields(expected);
 
-        final List<HeaderField<ResponseHeaderFieldDefinitions>> actual = this.responseMessage.getFields();
+        final List<HeaderField<?>> actual = this.responseMessage.getFields();
         assertEquals(2, actual.size());
         assertTrue(actual.contains(field1));
         assertTrue(actual.contains(field2));
@@ -90,7 +89,7 @@ public class MessageTest {
         this.responseMessage.addField(ResponseHeaderFieldDefinitions.AUTHORIZATION, "someValue");
         this.responseMessage.addField(ResponseHeaderFieldDefinitions.RETRY_AFTER, "5");
 
-        final Set<ResponseHeaderFieldDefinitions> fieldNames = this.responseMessage.getFieldNames();
+        final Set<?> fieldNames = this.responseMessage.getFieldNames();
         assertNotNull(fieldNames);
         assertTrue(fieldNames.contains(ResponseHeaderFieldDefinitions.AUTHORIZATION));
         assertTrue(fieldNames.contains(ResponseHeaderFieldDefinitions.RETRY_AFTER));

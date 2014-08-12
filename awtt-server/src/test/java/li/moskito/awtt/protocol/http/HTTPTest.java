@@ -89,7 +89,7 @@ public class HTTPTest {
         assertEquals(new URI("/some/example"), request.getResource());
         assertEquals(Version.HTTP_1_1, request.getVersion());
 
-        final List<HeaderField<RequestHeaderFieldDefinitions>> fields = request.getFields();
+        final List<HeaderField<?>> fields = request.getFields();
         assertNotNull(fields);
         assertFalse(fields.isEmpty());
 
@@ -121,7 +121,7 @@ public class HTTPTest {
         assertEquals(new URI("/some/example"), request.getResource());
         assertEquals(Version.HTTP_1_1, request.getVersion());
 
-        final List<HeaderField<RequestHeaderFieldDefinitions>> fields = request.getFields();
+        final List<HeaderField<?>> fields = request.getFields();
         assertNotNull(fields);
         assertFalse(fields.isEmpty());
 

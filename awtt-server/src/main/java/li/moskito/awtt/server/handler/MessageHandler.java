@@ -10,7 +10,7 @@ import li.moskito.awtt.protocol.http.Message;
  * 
  * @author Gerald
  */
-public interface MessageHandler<I extends Message<?>, O extends Message<?>> {
+public interface MessageHandler<I extends Message, O extends Message> {
 
     /**
      * Verifies if the handler does accept the request for processing

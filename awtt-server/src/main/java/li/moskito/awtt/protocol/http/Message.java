@@ -16,22 +16,22 @@ import java.util.Set;
  * 
  * @author Gerald
  */
-public abstract class Message<T extends HeaderFieldDefinition> {
+public abstract class Message {
 
     /**
      * Comparator for sorting header fields
      * 
      * @author Gerald
      */
-    private final class HeaderFieldComparator implements Comparator<HeaderField<T>> {
+    private final class HeaderFieldComparator implements Comparator<HeaderField<?>> {
         @Override
-        public int compare(final HeaderField<T> o1, final HeaderField<T> o2) {
+        public int compare(final HeaderField<?> o1, final HeaderField<?> o2) {
             return o1.getFieldName().getName().compareTo(o2.getFieldName().getName());
         }
     }
 
     private final Version version;
-    private final Map<T, HeaderField<T>> fields;
+    private final Map<HeaderFieldDefinition, HeaderField<?>> fields;
     private Entity entity;
 
     /**
@@ -47,8 +47,8 @@ public abstract class Message<T extends HeaderFieldDefinition> {
         return this.version;
     }
 
-    public List<HeaderField<T>> getFields() {
-        final List<HeaderField<T>> result = new ArrayList<>();
+    public List<HeaderField<?>> getFields() {
+        final List<HeaderField<?>> result = new ArrayList<>();
         result.addAll(this.fields.values());
 
         Collections.sort(result, new HeaderFieldComparator());
@@ -56,25 +56,25 @@ public abstract class Message<T extends HeaderFieldDefinition> {
         return result;
     }
 
-    public void addFields(final List<HeaderField<T>> fields) {
-        for (final HeaderField<T> field : fields) {
+    public void addFields(final List<HeaderField<?>> fields) {
+        for (final HeaderField<?> field : fields) {
             this.addField(field);
         }
     }
 
-    public void addField(final HeaderField<T> field) {
+    public <T extends HeaderFieldDefinition> void addField(final HeaderField<T> field) {
         this.fields.put(field.getFieldName(), field);
     }
 
-    public void addField(final T name, final Object value) {
-        this.addField(new HeaderField<T>(name, value.toString()));
+    public void addField(final HeaderFieldDefinition name, final Object value) {
+        this.addField(new HeaderField<HeaderFieldDefinition>(name, value.toString()));
     }
 
-    public Set<T> getFieldNames() {
+    public Set<HeaderFieldDefinition> getFieldNames() {
         return this.fields.keySet();
     }
 
-    public HeaderField<T> getField(final T fieldName) {
+    public HeaderField<?> getField(final HeaderFieldDefinition fieldName) {
         return this.fields.get(fieldName);
     }
 
@@ -82,7 +82,7 @@ public abstract class Message<T extends HeaderFieldDefinition> {
      * @param fieldName
      * @return
      */
-    public boolean hasField(final T fieldName) {
+    public boolean hasField(final HeaderFieldDefinition fieldName) {
         return this.fields.containsKey(fieldName);
     }
 

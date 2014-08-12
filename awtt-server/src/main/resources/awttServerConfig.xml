@@ -4,12 +4,19 @@
 		<listenPort hostname="" port="8080" protocol="http">
 			<connectionHandler
 				class="li.moskito.awtt.server.handler.BlockingConnectionHandler">
+				<!-- Number of concurrent connections -->
 				<maxConnections>5</maxConnections>
+				<!-- Keep Alive timeout in seconds, remove element for closing after a message has been processed -->
+				<keepAlive>5</keepAlive>
+				<!-- Maximum of Messages before the connection closes. Remove element for unlimited -->
+				<maxMessagesPerConnection>100</maxMessagesPerConnection>
 			</connectionHandler>
 			<messageHandlers>
 				<handler
 					class="li.moskito.awtt.server.handler.StaticFileContentRequestHandler">
+					<!-- Location (as URI) that contains the files to be hosted -->
 					<contentRoot>file:/C:/http/htdocs</contentRoot>
+					<!-- ContentType - FileExtension mapping -->
 					<contentTypes>
 						<type mimeType="text/plain" fileExtension="txt" />
 						<type mimeType="text/html" fileExtension="htm" />

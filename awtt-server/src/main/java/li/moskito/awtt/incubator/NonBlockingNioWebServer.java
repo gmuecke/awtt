@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import li.moskito.awtt.server.ConnectionControl;
 import li.moskito.awtt.server.RequestWorker;
 import li.moskito.awtt.server.handler.StaticFileContentRequestHandler;
 
@@ -78,7 +79,8 @@ public class NonBlockingNioWebServer {
                         LOG.info("Key {} is readable", key);
                         // dispatch the processing of a client to a separate thread
                         final SocketChannel client = (SocketChannel) key.channel();
-                        final Runnable worker = new RequestWorker(client, (List) Arrays.asList(handler));
+                        final Runnable worker = new RequestWorker(client, (List) Arrays.asList(handler),
+                                ConnectionControl.DEFAULT_CONNECTION_CONTROL);
                         // executor.execute(worker);
                         worker.run();
                     }

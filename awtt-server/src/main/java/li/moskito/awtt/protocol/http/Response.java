@@ -6,7 +6,7 @@ package li.moskito.awtt.protocol.http;
 /**
  * @author Gerald
  */
-public class Response extends Message<ResponseHeaderFieldDefinitions> {
+public class Response extends Message {
 
     private final StatusCodes status;
 

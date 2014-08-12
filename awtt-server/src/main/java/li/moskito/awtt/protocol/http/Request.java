@@ -8,7 +8,7 @@ import java.net.URI;
 /**
  * @author Gerald
  */
-public class Request extends Message<RequestHeaderFieldDefinitions> {
+public class Request extends Message {
 
     private final Commands command;
     private final URI resource;
@@ -42,7 +42,7 @@ public class Request extends Message<RequestHeaderFieldDefinitions> {
         buf.append(this.command).append(' ');
         buf.append(this.resource).append(' ');
         buf.append(this.getVersion()).append('\n');
-        for (final HeaderField<RequestHeaderFieldDefinitions> field : this.getFields()) {
+        for (final HeaderField<?> field : this.getFields()) {
             buf.append(' ').append(field.getFieldName()).append(": ").append(field.getValue()).append('\n');
         }
         return buf.toString();
