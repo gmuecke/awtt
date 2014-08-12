@@ -140,6 +140,7 @@ public class StaticFileContentRequestHandler extends HttpRequestHandler implemen
                 final Date ifModifiedDateDate = HTTP_DATE_FORMATTER.get().parse(date);
                 final Date systemDate = new Date(System.currentTimeMillis());
                 final Date modifiedDate = this.getLastModifiedDate(fileResourcePath);
+                LOG.debug("Date comparison {} vs {}", ifModifiedDateDate.getTime(), modifiedDate.getTime());
 
                 return ifModifiedDateDate.after(systemDate) || ifModifiedDateDate.before(modifiedDate);
 
@@ -248,6 +249,8 @@ public class StaticFileContentRequestHandler extends HttpRequestHandler implemen
      * @throws IOException
      */
     private Date getLastModifiedDate(final Path path) throws IOException {
-        return new Date(Files.getLastModifiedTime(path).toMillis());
+        final long fileTimestamp = Files.getLastModifiedTime(path).toMillis();
+        // we have to cut the ms part of the time (round down by 1000) as HTTP date doesn't have ms
+        return new Date(fileTimestamp / 1000 * 1000);
     }
 }
