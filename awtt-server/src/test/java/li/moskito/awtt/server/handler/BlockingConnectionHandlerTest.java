@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.net.ConnectException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
@@ -18,6 +19,8 @@ import org.mockito.MockitoAnnotations;
 
 public class BlockingConnectionHandlerTest {
 
+    private static final int TEST_PORT = 55000;
+
     @Mock
     private Port port;
     private BlockingConnectionHandler subject;
@@ -25,7 +28,8 @@ public class BlockingConnectionHandlerTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        when(this.port.getPortNumber()).thenReturn(10000);
+        when(this.port.getHostname()).thenReturn(InetAddress.getLoopbackAddress());
+        when(this.port.getPortNumber()).thenReturn(TEST_PORT);
         this.subject = new BlockingConnectionHandler();
     }
 
@@ -34,7 +38,7 @@ public class BlockingConnectionHandlerTest {
         this.subject.bind(this.port);
         final Thread subjectThread = new Thread(this.subject);
         subjectThread.start();
-        final SocketAddress address = new InetSocketAddress(10000);
+        final SocketAddress address = new InetSocketAddress("localhost", TEST_PORT);
         final SocketChannel clientConnection = SocketChannel.open(address);
         assertTrue(clientConnection.isConnected());
         this.subject.close();

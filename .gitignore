@@ -4,3 +4,4 @@ awtt-server/.settings/
 .settings/
 *.project
 *.classpath
+.sonar/
