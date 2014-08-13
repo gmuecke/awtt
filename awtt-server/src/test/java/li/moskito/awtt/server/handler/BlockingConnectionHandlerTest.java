@@ -38,6 +38,7 @@ public class BlockingConnectionHandlerTest {
         this.subject.bind(this.port);
         final Thread subjectThread = new Thread(this.subject);
         subjectThread.start();
+        Thread.sleep(200);
         final SocketAddress address = new InetSocketAddress("localhost", TEST_PORT);
         final SocketChannel clientConnection = SocketChannel.open(address);
         assertTrue(clientConnection.isConnected());
@@ -62,7 +63,8 @@ public class BlockingConnectionHandlerTest {
         this.subject.bind(this.port);
         final Thread subjectThread = new Thread(this.subject);
         subjectThread.start();
-        final SocketAddress address = new InetSocketAddress(10000);
+        Thread.sleep();
+        final SocketAddress address = new InetSocketAddress(TEST_PORT);
         final SocketChannel clientConnection = SocketChannel.open(address);
         assertTrue(clientConnection.isConnected());
         this.subject.close();
