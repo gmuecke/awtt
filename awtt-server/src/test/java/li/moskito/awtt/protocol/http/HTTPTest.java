@@ -15,20 +15,20 @@ import org.junit.Test;
 
 public class HTTPTest {
 
-    private void assertHttpRequest(final Commands command, final URI resource, final Version version,
-            final Request request) throws URISyntaxException {
-        assertNotNull("Command " + command + " was parsed to NULL", request);
-        assertEquals(command, request.getCommand());
-        assertEquals(resource, request.getResource());
-        assertEquals(version, request.getVersion());
+    private void assertHttpRequest(final HttpCommands command, final URI resource, final HttpVersion version,
+            final HttpRequest httpRequest) throws URISyntaxException {
+        assertNotNull("Command " + command + " was parsed to NULL", httpRequest);
+        assertEquals(command, httpRequest.getCommand());
+        assertEquals(resource, httpRequest.getResource());
+        assertEquals(version, httpRequest.getVersion());
 
         // empty fields
-        assertNotNull(request.getFields());
-        assertTrue(request.getFields().isEmpty());
+        assertNotNull(httpRequest.getFields());
+        assertTrue(httpRequest.getFields().isEmpty());
     }
 
-    private void assertHttpRequestField(final RequestHeaderFieldDefinitions fieldName, final String value,
-            final HeaderField field) {
+    private void assertHttpRequestField(final RequestHeaders fieldName, final String value,
+            final HttpHeaderField field) {
         assertNotNull("Field " + fieldName + " was parsed to NULL", field);
         assertEquals(fieldName, field.getFieldName());
         assertEquals(value, field.getValue());
@@ -56,16 +56,16 @@ public class HTTPTest {
 
     @Test
     public void testParseRequestLine_Commands() throws Exception {
-        for (final Commands command : Commands.values()) {
-            final Request request = HTTP.parseRequestLine(command + " /someFile HTTP/1.1");
-            this.assertHttpRequest(command, new URI("/someFile"), Version.HTTP_1_1, request);
+        for (final HttpCommands command : HttpCommands.values()) {
+            final HttpRequest httpRequest = HTTP.parseRequestLine(command + " /someFile HTTP/1.1");
+            this.assertHttpRequest(command, new URI("/someFile"), HttpVersion.HTTP_1_1, httpRequest);
         }
     }
 
     @Test
     public void testParseHeaderFields() throws Exception {
-        for (final RequestHeaderFieldDefinitions fieldName : RequestHeaderFieldDefinitions.values()) {
-            final HeaderField<RequestHeaderFieldDefinitions> field = HTTP.parseRequestHeaderField(fieldName
+        for (final RequestHeaders fieldName : RequestHeaders.values()) {
+            final HttpHeaderField<RequestHeaders> field = HTTP.parseRequestHeaderField(fieldName
                     + ": someValue");
             this.assertHttpRequestField(fieldName, "someValue", field);
         }
@@ -83,21 +83,21 @@ public class HTTPTest {
             +"User-Agent: Mozilla/4.0\r\n"
             +"Host: some.example.com\r\n";
         // @formatter:on
-        final Request request = HTTP.parseRequest(StandardCharsets.ISO_8859_1.encode(requestString));
-        assertNotNull(request);
-        assertEquals(Commands.GET, request.getCommand());
-        assertEquals(new URI("/some/example"), request.getResource());
-        assertEquals(Version.HTTP_1_1, request.getVersion());
+        final HttpRequest httpRequest = HTTP.parseRequest(StandardCharsets.ISO_8859_1.encode(requestString));
+        assertNotNull(httpRequest);
+        assertEquals(HttpCommands.GET, httpRequest.getCommand());
+        assertEquals(new URI("/some/example"), httpRequest.getResource());
+        assertEquals(HttpVersion.HTTP_1_1, httpRequest.getVersion());
 
-        final List<HeaderField<?>> fields = request.getFields();
+        final List<HttpHeaderField<?>> fields = httpRequest.getFields();
         assertNotNull(fields);
         assertFalse(fields.isEmpty());
 
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT, "image/gif", fields.get(0));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_ENCODING, "gzip", fields.get(1));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_LANGUAGE, "en-us", fields.get(2));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.HOST, "some.example.com", fields.get(3));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.USER_AGENT, "Mozilla/4.0", fields.get(4));
+        this.assertHttpRequestField(RequestHeaders.ACCEPT, "image/gif", fields.get(0));
+        this.assertHttpRequestField(RequestHeaders.ACCEPT_ENCODING, "gzip", fields.get(1));
+        this.assertHttpRequestField(RequestHeaders.ACCEPT_LANGUAGE, "en-us", fields.get(2));
+        this.assertHttpRequestField(RequestHeaders.HOST, "some.example.com", fields.get(3));
+        this.assertHttpRequestField(RequestHeaders.USER_AGENT, "Mozilla/4.0", fields.get(4));
 
     }
 
@@ -114,31 +114,31 @@ public class HTTPTest {
         // @formatter:on
         final CharBuffer cbuf = CharBuffer.wrap(requestString);
 
-        final Request request = HTTP.parseRequest(cbuf);
+        final HttpRequest httpRequest = HTTP.parseRequest(cbuf);
 
-        assertNotNull(request);
-        assertEquals(Commands.GET, request.getCommand());
-        assertEquals(new URI("/some/example"), request.getResource());
-        assertEquals(Version.HTTP_1_1, request.getVersion());
+        assertNotNull(httpRequest);
+        assertEquals(HttpCommands.GET, httpRequest.getCommand());
+        assertEquals(new URI("/some/example"), httpRequest.getResource());
+        assertEquals(HttpVersion.HTTP_1_1, httpRequest.getVersion());
 
-        final List<HeaderField<?>> fields = request.getFields();
+        final List<HttpHeaderField<?>> fields = httpRequest.getFields();
         assertNotNull(fields);
         assertFalse(fields.isEmpty());
 
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT, "image/gif", fields.get(0));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_ENCODING, "gzip", fields.get(1));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_LANGUAGE, "en-us", fields.get(2));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.HOST, "some.example.com", fields.get(3));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.USER_AGENT, "Mozilla/4.0", fields.get(4));
+        this.assertHttpRequestField(RequestHeaders.ACCEPT, "image/gif", fields.get(0));
+        this.assertHttpRequestField(RequestHeaders.ACCEPT_ENCODING, "gzip", fields.get(1));
+        this.assertHttpRequestField(RequestHeaders.ACCEPT_LANGUAGE, "en-us", fields.get(2));
+        this.assertHttpRequestField(RequestHeaders.HOST, "some.example.com", fields.get(3));
+        this.assertHttpRequestField(RequestHeaders.USER_AGENT, "Mozilla/4.0", fields.get(4));
 
     }
 
     @Test
     public void testSerializeResponseHeader() throws Exception {
-        final Response response = new Response(Version.HTTP_1_1, StatusCodes.OK);
-        response.addField(ResponseHeaderFieldDefinitions.CONTENT_LENGTH, "200");
+        final HttpResponse httpResponse = new HttpResponse(HttpVersion.HTTP_1_1, HttpStatusCodes.OK);
+        httpResponse.addField(ResponseHeaders.CONTENT_LENGTH, "200");
 
-        final CharBuffer buf = HTTP.serializeResponseHeader(response);
+        final CharBuffer buf = HTTP.serializeHeader(httpResponse);
         assertNotNull(buf);
         final String message = buf.toString();
         assertEquals("HTTP/1.1 200 OK\r\nContent-Length: 200\r\n\r\n", message);

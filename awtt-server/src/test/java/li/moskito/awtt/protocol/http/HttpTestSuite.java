@@ -3,6 +3,8 @@
  */
 package li.moskito.awtt.protocol.http;
 
+import li.moskito.awtt.protocol.BinaryBodyTest;
+
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -12,8 +14,8 @@ import org.junit.runners.Suite.SuiteClasses;
  */
 @RunWith(Suite.class)
 @SuiteClasses({
-        EntityTest.class, HeaderFieldTest.class, HTTPTest.class, MessageTest.class, ResponseTest.class,
-        RequestTest.class
+        BinaryBodyTest.class, HttpHeaderFieldTest.class, HTTPTest.class, HttpMessageTest.class, HttpResponseTest.class,
+        HttpRequestTest.class
 })
 public class HttpTestSuite {
 
