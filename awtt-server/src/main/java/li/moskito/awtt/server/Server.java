@@ -3,6 +3,8 @@
  */
 package li.moskito.awtt.server;
 
+import li.moskito.awtt.common.Configurable;
+
 
 /**
  * Interface for AWTT servers

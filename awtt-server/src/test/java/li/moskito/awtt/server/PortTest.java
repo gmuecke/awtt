@@ -9,8 +9,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import li.moskito.awtt.protocol.http.Request;
-import li.moskito.awtt.protocol.http.Response;
+import li.moskito.awtt.protocol.http.HttpRequest;
+import li.moskito.awtt.protocol.http.HttpResponse;
 import li.moskito.awtt.server.handler.MessageHandler;
 
 import org.junit.Before;
@@ -25,7 +25,7 @@ public class PortTest {
     @Mock
     private InetAddress hostname;
     @Mock
-    private MessageHandler<Request, Response> handler;
+    private MessageHandler<HttpRequest, HttpResponse> handler;
 
     private final int portNumber = 100;
 

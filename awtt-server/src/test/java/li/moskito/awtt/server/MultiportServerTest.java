@@ -9,9 +9,9 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import li.moskito.awtt.protocol.http.Request;
-import li.moskito.awtt.protocol.http.Response;
-import li.moskito.awtt.server.handler.ConnectionHandler;
+import li.moskito.awtt.common.Configurable;
+import li.moskito.awtt.protocol.http.HttpRequest;
+import li.moskito.awtt.protocol.http.HttpResponse;
 import li.moskito.awtt.server.handler.MessageHandler;
 
 import org.apache.commons.configuration.ConfigurationException;
@@ -72,7 +72,7 @@ public class MultiportServerTest {
 
     }
 
-    public static final class TestRequestHandler implements MessageHandler<Request, Response>, Configurable {
+    public static final class TestRequestHandler implements MessageHandler<HttpRequest, HttpResponse>, Configurable {
 
         public static final List<TestRequestHandler> instances = new CopyOnWriteArrayList<>();
         private boolean configured;
@@ -85,12 +85,12 @@ public class MultiportServerTest {
         }
 
         @Override
-        public boolean accepts(final Request request) {
+        public boolean accepts(final HttpRequest httpRequest) {
             return false;
         }
 
         @Override
-        public Response process(final Request request) {
+        public HttpResponse process(final HttpRequest httpRequest) {
             return null;
         }
 

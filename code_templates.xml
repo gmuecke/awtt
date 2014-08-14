@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?><templates><template autoinsert="true" context="java" deleted="false" description="Creates a singleton using the Holder pattern" enabled="true" name="singleton">	/**&#13;
+	 * Holder idiom&#13;
+	 */&#13;
+	private static class Holder {&#13;
+		private static final ${enclosing_type} INSTANCE = &#13;
+						 new ${enclosing_type}();&#13;
+	}&#13;
+	/**&#13;
+	 * Singleton constructor&#13;
+	 */&#13;
+	private ${enclosing_type}(){&#13;
+		&#13;
+	}&#13;
+	&#13;
+	/**&#13;
+	 * Liefert eine Singleton Instanz.&#13;
+	 * @return&#13;
+	 */&#13;
+	public static ${enclosing_type} getInstance(){&#13;
+		return Holder.INSTANCE;&#13;
+	}&#13;
+</template></templates>

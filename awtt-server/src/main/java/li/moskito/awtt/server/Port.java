@@ -4,11 +4,8 @@
 package li.moskito.awtt.server;
 
 import java.net.InetAddress;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
-import li.moskito.awtt.server.handler.MessageHandler;
+import li.moskito.awtt.protocol.Protocol;
 
 /**
  * A Port relates to a TCP port the server is listening at. It is identified by a hostname and a port number. Multiple
@@ -20,17 +17,29 @@ public class Port {
 
     private final int port;
     private final InetAddress hostname;
-    private final List<MessageHandler<?, ?>> requestHandlers;
+    private final Protocol<?, ?, ?> protocol;
+
+    /**
+     * Creates a new port with the default port of the protocol
+     * 
+     * @param hostname
+     *            the hostname binding for the port
+     * @param protocol
+     *            the protocol to accept on the port
+     */
+    public Port(final InetAddress hostname, final Protocol<?, ?, ?> protocol) {
+        this(hostname, protocol.getDefaultPort(), protocol);
+    }
 
     /**
      * @param hostname
      * @param port
      */
-    public Port(final InetAddress hostname, final int port) {
+    public Port(final InetAddress hostname, final int port, final Protocol<?, ?, ?> protocol) {
         super();
         this.hostname = hostname;
         this.port = port;
-        this.requestHandlers = new CopyOnWriteArrayList<>();
+        this.protocol = protocol;
     }
 
     public int getPortNumber() {
@@ -41,19 +50,8 @@ public class Port {
         return this.hostname;
     }
 
-    public List<MessageHandler<?, ?>> getMessageHandlers() {
-        return Collections.unmodifiableList(this.requestHandlers);
-    }
-
-    public void addMessageHandler(final MessageHandler<?, ?> handler) {
-        this.requestHandlers.add(handler);
-    }
-
-    /**
-     * @param requestHandlers
-     */
-    public void addMessageHandlers(final List<MessageHandler<?, ?>> requestHandlers) {
-        this.requestHandlers.addAll(requestHandlers);
+    public Protocol<?, ?, ?> getProtocol() {
+        return this.protocol;
     }
 
 }
