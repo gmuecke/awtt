@@ -10,9 +10,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import li.moskito.awtt.common.Configurable;
-import li.moskito.awtt.protocol.http.HttpRequest;
-import li.moskito.awtt.protocol.http.HttpResponse;
-import li.moskito.awtt.server.handler.MessageHandler;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -49,22 +46,11 @@ public class MultiportServerTest {
     public void testConfigureAndStartServer() throws Exception {
         this.subject.configure(this.config);
 
-        // test if both handler have been created and configured
-        assertEquals(1, TestConnectionHandler.instances.size());
-        assertEquals(1, TestRequestHandler.instances.size());
-
-        assertTrue(TestConnectionHandler.instances.get(0).configured);
-        assertTrue(TestRequestHandler.instances.get(0).configured);
-
         // test if port was created and request handler added
         final Port port = TestConnectionHandler.instances.get(0).port;
         assertNotNull(port);
         assertEquals(InetAddress.getByName("localhost"), port.getHostname());
         assertEquals(11000, port.getPortNumber());
-        assertEquals(1, port.getMessageHandlers().size());
-
-        // test if port was bound to connection handler
-        assertEquals(port.getMessageHandlers().get(0), TestRequestHandler.instances.get(0));
 
         this.subject.startServer();
         Thread.sleep(100); // wait some ms for the executer to execute his task
@@ -72,42 +58,10 @@ public class MultiportServerTest {
 
     }
 
-    public static final class TestRequestHandler implements MessageHandler<HttpRequest, HttpResponse>, Configurable {
-
-        public static final List<TestRequestHandler> instances = new CopyOnWriteArrayList<>();
-        private boolean configured;
-
-        /**
-         * 
-         */
-        public TestRequestHandler() {
-            instances.add(this);
-        }
-
-        @Override
-        public boolean accepts(final HttpRequest httpRequest) {
-            return false;
-        }
-
-        @Override
-        public HttpResponse process(final HttpRequest httpRequest) {
-            return null;
-        }
-
-        @Override
-        public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
-            this.configured = true;
-
-        }
-
-    }
-
     public static final class TestConnectionHandler implements ConnectionHandler, Configurable {
 
         private Port port;
         private boolean run;
-        private boolean configured;
-
         public static final List<TestConnectionHandler> instances = new CopyOnWriteArrayList<>();
 
         /**
@@ -136,7 +90,6 @@ public class MultiportServerTest {
 
         @Override
         public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
-            this.configured = true;
 
         }
 

@@ -16,9 +16,8 @@ import java.util.Locale;
 import li.moskito.awtt.protocol.http.HttpCommands;
 import li.moskito.awtt.protocol.http.HttpRequest;
 import li.moskito.awtt.protocol.http.HttpResponse;
-import li.moskito.awtt.protocol.http.ResponseHeaders;
 import li.moskito.awtt.protocol.http.HttpVersion;
-import li.moskito.awtt.server.http.StaticFileContentRequestHandler;
+import li.moskito.awtt.protocol.http.ResponseHeaders;
 
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
@@ -43,7 +42,7 @@ public class StaticFileContentRequestHandlerTest {
         this.config.setExpressionEngine(new XPathExpressionEngine());
         this.subject = new StaticFileContentRequestHandler();
 
-        when(this.httpRequest.getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+        when(this.httpRequest.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
     }
 
     @Test
@@ -97,9 +96,9 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        assertEquals(expectedLastModifiedDate, httpResponse.getField(ResponseHeaders.LAST_MODIFIED)
+        assertEquals(expectedLastModifiedDate, httpResponse.getHeader().getField(ResponseHeaders.LAST_MODIFIED)
                 .getValue());
-        assertEquals("text/plain", httpResponse.getField(ResponseHeaders.CONTENT_TYPE).getValue());
+        assertEquals("text/plain", httpResponse.getHeader().getField(ResponseHeaders.CONTENT_TYPE).getValue());
 
     }
 }

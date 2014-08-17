@@ -8,10 +8,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 
-import li.moskito.awtt.server.Blockinimport li.moskito.awtt.server.handler.BlockingConnectionHandler;
-gConnectionHandler;
-import li.moskito.awtt.server.Port;
-
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.junit.Before;
 import org.junit.Test;
