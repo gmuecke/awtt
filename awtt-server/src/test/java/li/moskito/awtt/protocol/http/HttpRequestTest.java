@@ -7,26 +7,43 @@ import java.net.URI;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HttpRequestTest {
 
+    private HttpCommands command;
+
+    private URI resource;
+
+    private HttpVersion version;
+
     private HttpRequest httpRequest;
 
     @Before
     public void setUp() throws Exception {
-        this.httpRequest = new HttpRequest(HttpCommands.GET, new URI("test"), HttpVersion.HTTP_1_1);
+        MockitoAnnotations.initMocks(this);
+        this.version = HttpVersion.HTTP_1_0;
+        this.command = HttpCommands.GET;
+        this.resource = new URI("/testResource");
+        this.httpRequest = new HttpRequest(this.command, this.resource, this.version);
     }
 
     @Test
     public void testGetCommand() throws Exception {
-        assertEquals(HttpCommands.GET, this.httpRequest.getCommand());
+        assertEquals(this.command, this.httpRequest.getCommand());
     }
 
     @Test
     public void testGetResource() throws Exception {
-        assertEquals(new URI("test"), this.httpRequest.getResource());
+        assertEquals(this.resource, this.httpRequest.getResource());
+    }
+
+    @Test
+    public void testToString() throws Exception {
+        final String strRequest = "GET /testResource HTTP/1.0\r\n\r\n";
+        assertEquals(strRequest, this.httpRequest.toString());
     }
 
 }

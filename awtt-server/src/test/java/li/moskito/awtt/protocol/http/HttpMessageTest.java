@@ -1,118 +1,65 @@
 package li.moskito.awtt.protocol.http;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
+import static org.junit.Assert.assertNull;
 import li.moskito.awtt.protocol.BinaryBody;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class HttpMessageTest {
+    @Mock
+    private BinaryBody body;
 
-    private HttpMessage responseMessage;
+    private HttpHeader header;
+
+    private TestHttpMessage httpMessage;
+
+    public static class TestHttpMessage extends HttpMessage {
+
+        /**
+         * @param header
+         */
+        public TestHttpMessage(final HttpHeader header) {
+            super(header);
+        }
+
+    }
 
     @Before
     public void setUp() throws Exception {
-        this.responseMessage = new HttpMessage(HttpVersion.HTTP_1_0) {};
+        MockitoAnnotations.initMocks(this);
+        this.header = new HttpHeader(HttpStatusCodes.OK);
+        this.httpMessage = new TestHttpMessage(this.header);
     }
 
     @Test
-    public void testGetVersion() throws Exception {
-        assertEquals(HttpVersion.HTTP_1_0, this.responseMessage.getVersion());
+    public void testAddField() throws Exception {
+        this.httpMessage.addField(RequestHeaders.ACCEPT, "aValue");
+        assertEquals("aValue", this.httpMessage.getHeader().getField(RequestHeaders.ACCEPT).getValue());
     }
 
     @Test
-    public void testAddFields_GetFields() throws Exception {
-
-        final HttpHeaderField<ResponseHeaders> field1 = new HttpHeaderField<>(
-                ResponseHeaders.CONNECTION, "Keep-Alive");
-        final HttpHeaderField<ResponseHeaders> field2 = new HttpHeaderField<>(
-                ResponseHeaders.CONTENT_LENGTH, "200");
-        final List<HttpHeaderField<?>> expected = new ArrayList<>();
-        expected.add(field1);
-        expected.add(field2);
-        this.responseMessage.addFields(expected);
-
-        final List<HttpHeaderField<?>> actual = this.responseMessage.getFields();
-        assertEquals(2, actual.size());
-        assertTrue(actual.contains(field1));
-        assertTrue(actual.contains(field2));
+    public void testGetHeader() throws Exception {
+        assertNotNull(this.httpMessage.getHeader());
+        assertEquals(this.header, this.httpMessage.getHeader());
     }
 
     @Test
-    public void testAddField_GetFieldString() throws Exception {
-        this.responseMessage.addField(ResponseHeaders.AUTHORIZATION, "someValue");
-        this.responseMessage.addField(ResponseHeaders.RETRY_AFTER, "5");
-
-        assertNotNull(this.responseMessage.getField(ResponseHeaders.AUTHORIZATION));
-        assertEquals("someValue", this.responseMessage.getField(ResponseHeaders.AUTHORIZATION)
-                .getValue());
-        assertNotNull(this.responseMessage.getField(ResponseHeaders.RETRY_AFTER));
-        assertEquals("5", this.responseMessage.getField(ResponseHeaders.RETRY_AFTER).getValue());
-
-        assertTrue(this.responseMessage.getFieldNames().contains(ResponseHeaders.AUTHORIZATION));
-        assertTrue(this.responseMessage.getFieldNames().contains(ResponseHeaders.RETRY_AFTER));
+    public void testGetBody() throws Exception {
+        assertNull(this.httpMessage.getBody());
     }
 
     @Test
-    public void testAddFieldObject_GetFieldString() throws Exception {
-
-        final HttpHeaderField<ResponseHeaders> field1 = new HttpHeaderField<>(
-                ResponseHeaders.AUTHORIZATION, "someValue");
-        final HttpHeaderField<ResponseHeaders> field2 = new HttpHeaderField<>(
-                ResponseHeaders.RETRY_AFTER, "5");
-
-        this.responseMessage.addField(field1);
-        this.responseMessage.addField(field2);
-
-        assertNotNull(this.responseMessage.getField(ResponseHeaders.AUTHORIZATION));
-        assertEquals("someValue", this.responseMessage.getField(ResponseHeaders.AUTHORIZATION)
-                .getValue());
-        assertNotNull(this.responseMessage.getField(ResponseHeaders.RETRY_AFTER));
-        assertEquals("5", this.responseMessage.getField(ResponseHeaders.RETRY_AFTER).getValue());
-
-        assertTrue(this.responseMessage.getFields().contains(field1));
-        assertTrue(this.responseMessage.getFields().contains(field2));
-
-        assertTrue(this.responseMessage.getFieldNames().contains(ResponseHeaders.AUTHORIZATION));
-        assertTrue(this.responseMessage.getFieldNames().contains(ResponseHeaders.RETRY_AFTER));
+    public void testSetBody() throws Exception {
+        this.httpMessage.setBody(this.body);
+        assertEquals(this.body, this.httpMessage.getBody());
     }
 
-    @Test
-    public void testGetFieldNames() throws Exception {
-        this.responseMessage.addField(ResponseHeaders.AUTHORIZATION, "someValue");
-        this.responseMessage.addField(ResponseHeaders.RETRY_AFTER, "5");
-
-        final Set<?> fieldNames = this.responseMessage.getFieldNames();
-        assertNotNull(fieldNames);
-        assertTrue(fieldNames.contains(ResponseHeaders.AUTHORIZATION));
-        assertTrue(fieldNames.contains(ResponseHeaders.RETRY_AFTER));
-    }
-
-    @Test
-    public void testHasEntity_noEntity() {
-        assertFalse(this.responseMessage.hasEntity());
-    }
-
-    @Test
-    public void testHasEntity_withEntity() {
-        final BinaryBody entity = mock(BinaryBody.class);
-        this.responseMessage.setEntity(entity);
-        assertTrue(this.responseMessage.hasEntity());
-    }
-
-    @Test
-    public void testGetSetEntity() {
-        final BinaryBody entity = mock(BinaryBody.class);
-        this.responseMessage.setEntity(entity);
-        assertEquals(entity, this.responseMessage.getEntity());
-    }
 }

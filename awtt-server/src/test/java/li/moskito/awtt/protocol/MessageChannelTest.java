@@ -1,13 +1,44 @@
 package li.moskito.awtt.protocol;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 public class MessageChannelTest {
 
+    public static class TestMessageChannel extends MessageChannel {
+
+        private Protocol<?, ?, ?> protocol;
+
+        @Override
+        public Protocol<?, ?, ?> getProtocol() {
+            return this.protocol;
+        }
+
+        @Override
+        protected Message parseMessage(final ByteBuffer src) throws ProtocolException, IOException {
+            return null;
+        }
+
+        @Override
+        protected CharBuffer serializeHeader(final Header header) {
+            return null;
+        }
+
+    }
+
+    @Spy
+    private TestMessageChannel channel;
+
     @Before
-    public void setUp() throws Exception {}
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
+    }
 
     @Test
     public void testRead() throws Exception {

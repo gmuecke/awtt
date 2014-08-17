@@ -180,8 +180,8 @@ public enum HttpStatusCodes {
     HTTP_VERSION_NOT_SUPPORTED(505, "HTTP Version Not Supported"),
 
     ;
-    private String reason;
-    private int code;
+    private final String reason;
+    private final int code;
 
     /**
      * 
@@ -195,16 +195,8 @@ public enum HttpStatusCodes {
         return this.reason;
     }
 
-    public void setReason(final String reason) {
-        this.reason = reason;
-    }
-
     public int getCode() {
         return this.code;
-    }
-
-    public void setCode(final int code) {
-        this.code = code;
     }
 
     @Override

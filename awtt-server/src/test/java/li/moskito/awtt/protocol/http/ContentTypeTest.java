@@ -1,7 +1,6 @@
 package li.moskito.awtt.protocol.http;
 
 import static org.junit.Assert.assertEquals;
-import li.moskito.awtt.protocol.http.ContentType;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +17,11 @@ public class ContentTypeTest {
     @Test
     public void testGetMIMEType() throws Exception {
         assertEquals("text/plain", this.subject.getMIMEType());
+    }
+
+    @Test
+    public void testToString() throws Exception {
+        assertEquals("text/plain", this.subject.toString());
     }
 
 }

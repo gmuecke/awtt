@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 
 import li.moskito.awtt.protocol.Header;
-import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
@@ -47,7 +46,7 @@ public class HttpChannel extends MessageChannel {
     }
 
     @Override
-    protected Message parseMessage(final ByteBuffer src) throws ProtocolException, IOException {
+    protected HttpMessage parseMessage(final ByteBuffer src) throws ProtocolException, IOException {
         return this.parseMessage(HTTP.CHARSET.decode(src));
     }
 
@@ -131,6 +130,7 @@ public class HttpChannel extends MessageChannel {
             try {
                 httpRequest = new HttpRequest(HttpCommands.valueOf(matcher.group(1)), new URI(matcher.group(2)),
                         HttpVersion.fromString(matcher.group(3)));
+                httpRequest.setCharset(HTTP.CHARSET);
             } catch (final URISyntaxException e) {
                 throw new HttpProtocolException("Resource identifier in " + e.getInput() + " was invalid at position "
                         + e.getIndex(), requestLine, e);
