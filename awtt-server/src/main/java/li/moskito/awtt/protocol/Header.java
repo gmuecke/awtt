@@ -4,7 +4,6 @@
 package li.moskito.awtt.protocol;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -12,11 +11,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import junit.runner.Version;
+import li.moskito.awtt.protocol.http.HttpVersion;
 
 /**
- * The header of a {@link Protocol} {@link Message}. The header carries the {@link Version} of the protocol and a list
- * of {@link HeaderField}s.
+ * The header of a {@link Protocol} {@link Message}. The header carries the {@link HttpVersion} of the protocol and a
+ * list of {@link HeaderField}s.
  * 
  * @author Gerald
  */
@@ -56,12 +55,15 @@ public abstract class Header {
      * 
      * @return a list of header fields
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({
+            "unchecked", "rawtypes"
+    })
     public <T extends HeaderField<? extends HeaderFieldDefinition, ?>> List<T> getFields() {
-        final List<T> result = new ArrayList<>();
-        result.addAll((Collection<? extends T>) this.fields.values());
+        final List<HeaderField<? extends HeaderFieldDefinition, ?>> result = new ArrayList<>();
+        result.addAll(this.fields.values());
         Collections.sort(result, COMPARATOR);
-        return result;
+        // TODO fix inconvertible types (cast to List<T> should work in Maven/Bamboo as well!)
+        return (List) result;
     }
 
     /**
