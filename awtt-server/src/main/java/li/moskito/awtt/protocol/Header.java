@@ -12,8 +12,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import junit.runner.Version;
+
 /**
- * The header of a protcol message. The carries the version of the protocol and a list of header fields.
+ * The header of a {@link Protocol} {@link Message}. The header carries the {@link Version} of the protocol and a list
+ * of {@link HeaderField}s.
  * 
  * @author Gerald
  */

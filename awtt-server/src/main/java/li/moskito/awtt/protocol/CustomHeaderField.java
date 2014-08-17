@@ -22,6 +22,15 @@ public class CustomHeaderField implements HeaderFieldDefinition {
      */
     private static final Map<String, CustomHeaderField> KNOWN_HEADER_FIELD = new WeakHashMap<>();
 
+    /**
+     * Creates a new custom header field. Because header fields are immutable in their nature as they only define a name
+     * for the field, this method creates a new instance only if the header field has not been created before or wasn't
+     * in use any more.
+     * 
+     * @param name
+     *            the name of the custom header field to be created.
+     * @return an instance of a custom header field for the specified name
+     */
     public static CustomHeaderField forName(final String name) {
         if (!KNOWN_HEADER_FIELD.containsKey(name)) {
             final CustomHeaderField field = new CustomHeaderField(name);
@@ -33,6 +42,7 @@ public class CustomHeaderField implements HeaderFieldDefinition {
 
     /**
      * @param name
+     *            name of the hader field
      */
     private CustomHeaderField(final String name) {
         super();
