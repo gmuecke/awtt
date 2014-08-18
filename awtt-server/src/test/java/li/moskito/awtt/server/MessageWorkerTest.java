@@ -1,10 +1,14 @@
 package li.moskito.awtt.server;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.verify;
+
 import java.nio.channels.SocketChannel;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -17,28 +21,28 @@ public class MessageWorkerTest {
     @Mock
     private ConnectionHandlerParameters connectionParams;
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Port port;
+
     @InjectMocks
     private MessageWorker messageWorker;
 
     @Before
     public void setUp() throws Exception {
-    }
 
-    @Test
-    public void testMessageWorker() throws Exception {
-        throw new RuntimeException("not yet implemented");
     }
 
     @Test
     public void testGetConnectionControl() throws Exception {
-        throw new RuntimeException("not yet implemented");
+        assertEquals(this.connectionParams, this.messageWorker.getConnectionControl());
     }
 
     @Test
     public void testRun() throws Exception {
-        throw new RuntimeException("not yet implemented");
+        this.messageWorker.run();
+
+        verify(this.channel).isConnected();
+        verify(this.channel).close();
     }
 
 }

@@ -1,6 +1,7 @@
 package li.moskito.awtt.server;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
 
@@ -28,6 +29,7 @@ public class PortTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        when(this.protocol.getDefaultPort()).thenReturn(80);
         this.port = new Port(this.hostname, this.portNumber, this.protocol);
     }
 
