@@ -4,12 +4,15 @@
 package li.moskito.awtt.protocol.http;
 
 /**
- * A implementation of the ContentType interface for creating custom content Types
+ * A content type according to the definition of it in HTTP. The ContentType is associated with a MIME type.
  * 
  * @author Gerald
  */
 public class ContentType {
 
+    /**
+     * ContentType that should be used when the MIME type can not be determined.
+     */
     public final static ContentType APPLICATION_OCTETSTREAM = new ContentType("application/octet-stream");
 
     private final String mimeType;

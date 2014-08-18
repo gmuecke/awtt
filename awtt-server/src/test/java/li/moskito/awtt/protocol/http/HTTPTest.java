@@ -4,144 +4,209 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
+import li.moskito.awtt.common.Configurable;
+import li.moskito.awtt.protocol.HeaderField;
+import li.moskito.awtt.protocol.HeaderFieldDefinition;
+import li.moskito.awtt.server.ConnectionHandlerParameters;
+
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.HierarchicalConfiguration;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 public class HTTPTest {
 
-    private void assertHttpRequest(final Commands command, final URI resource, final Version version,
-            final Request request) throws URISyntaxException {
-        assertNotNull("Command " + command + " was parsed to NULL", request);
-        assertEquals(command, request.getCommand());
-        assertEquals(resource, request.getResource());
-        assertEquals(version, request.getVersion());
+    @Mock
+    private TestHandler mockHandler;
 
-        // empty fields
-        assertNotNull(request.getFields());
-        assertTrue(request.getFields().isEmpty());
-    }
+    public static class TestHandler extends HttpProtocolHandler implements Configurable {
 
-    private void assertHttpRequestField(final RequestHeaderFieldDefinitions fieldName, final String value,
-            final HeaderField field) {
-        assertNotNull("Field " + fieldName + " was parsed to NULL", field);
-        assertEquals(fieldName, field.getFieldName());
-        assertEquals(value, field.getValue());
-    }
+        private static TestHandler mock;
 
-    @Test(expected = HttpProtocolException.class)
-    public void testParseRequestLine_invalidCommand() throws Exception {
-        HTTP.parseRequestLine("FIND /someBug HTTP/1.1");
-    }
+        @Override
+        public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
+            mock.configure(config);
 
-    @Test(expected = HttpProtocolException.class)
-    public void testParseRequestLine_invalidVersion() throws Exception {
-        HTTP.parseRequestLine("GET /someBug HTTP/2.0");
-    }
-
-    @Test(expected = HttpProtocolException.class)
-    public void testParseRequestLine_missingVersion() throws Exception {
-        HTTP.parseRequestLine("FIND /someBug");
-    }
-
-    @Test(expected = HttpProtocolException.class)
-    public void testParseRequestLine_invalidResource() throws Exception {
-        HTTP.parseRequestLine("GET " + 0xa + "://" + 0x9 + " HTTP/1.1");
-    }
-
-    @Test
-    public void testParseRequestLine_Commands() throws Exception {
-        for (final Commands command : Commands.values()) {
-            final Request request = HTTP.parseRequestLine(command + " /someFile HTTP/1.1");
-            this.assertHttpRequest(command, new URI("/someFile"), Version.HTTP_1_1, request);
         }
-    }
 
-    @Test
-    public void testParseHeaderFields() throws Exception {
-        for (final RequestHeaderFieldDefinitions fieldName : RequestHeaderFieldDefinitions.values()) {
-            final HeaderField<RequestHeaderFieldDefinitions> field = HTTP.parseRequestHeaderField(fieldName
-                    + ": someValue");
-            this.assertHttpRequestField(fieldName, "someValue", field);
+        @Override
+        protected HttpResponse onGet(final HttpRequest httpRequest) {
+            return mock.onGet(httpRequest);
         }
 
     }
 
-    @Test
-    public void testParseRequest_String() throws Exception {
-        //@formatter:off
-        final String requestString = 
-          "GET /some/example HTTP/1.1\r\n"
-            +"Accept: image/gif\r\n"
-            +"Accept-Language: en-us\r\n"
-            +"Accept-Encoding: gzip\r\n"
-            +"User-Agent: Mozilla/4.0\r\n"
-            +"Host: some.example.com\r\n";
-        // @formatter:on
-        final Request request = HTTP.parseRequest(StandardCharsets.ISO_8859_1.encode(requestString));
-        assertNotNull(request);
-        assertEquals(Commands.GET, request.getCommand());
-        assertEquals(new URI("/some/example"), request.getResource());
-        assertEquals(Version.HTTP_1_1, request.getVersion());
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private HttpRequest request;
 
-        final List<HeaderField<?>> fields = request.getFields();
-        assertNotNull(fields);
-        assertFalse(fields.isEmpty());
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private HttpResponse response;
 
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT, "image/gif", fields.get(0));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_ENCODING, "gzip", fields.get(1));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_LANGUAGE, "en-us", fields.get(2));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.HOST, "some.example.com", fields.get(3));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.USER_AGENT, "Mozilla/4.0", fields.get(4));
+    private HTTP http;
+
+    @Before
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
+        TestHandler.mock = this.mockHandler;
+        this.http = new HTTP();
 
     }
 
     @Test
-    public void testParseRequest_CharBuffer() throws Exception {
-        //@formatter:off
-        final String requestString = 
-          "GET /some/example HTTP/1.1\r\n"
-            +"Accept: image/gif\r\n"
-            +"Accept-Language: en-us\r\n"
-            +"Accept-Encoding: gzip\r\n"
-            +"User-Agent: Mozilla/4.0\r\n"
-            +"Host: some.example.com\r\n";
-        // @formatter:on
-        final CharBuffer cbuf = CharBuffer.wrap(requestString);
-
-        final Request request = HTTP.parseRequest(cbuf);
-
-        assertNotNull(request);
-        assertEquals(Commands.GET, request.getCommand());
-        assertEquals(new URI("/some/example"), request.getResource());
-        assertEquals(Version.HTTP_1_1, request.getVersion());
-
-        final List<HeaderField<?>> fields = request.getFields();
-        assertNotNull(fields);
-        assertFalse(fields.isEmpty());
-
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT, "image/gif", fields.get(0));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_ENCODING, "gzip", fields.get(1));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.ACCEPT_LANGUAGE, "en-us", fields.get(2));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.HOST, "some.example.com", fields.get(3));
-        this.assertHttpRequestField(RequestHeaderFieldDefinitions.USER_AGENT, "Mozilla/4.0", fields.get(4));
+    public void testProcess_noHandlers() throws Exception {
+        final HttpResponse response = this.http.process(this.request);
+        assertNotNull(response);
+        assertEquals(HttpStatusCodes.NOT_IMPLEMENTED, response.getStatusCode());
 
     }
 
     @Test
-    public void testSerializeResponseHeader() throws Exception {
-        final Response response = new Response(Version.HTTP_1_1, StatusCodes.OK);
-        response.addField(ResponseHeaderFieldDefinitions.CONTENT_LENGTH, "200");
+    public void testProcess_withHandlers() throws Exception {
+        this.testConfigure();
+        when(this.mockHandler.accepts(this.request)).thenReturn(true);
+        when(this.mockHandler.onGet(this.request)).thenReturn(this.response);
+        when(this.request.getCommand()).thenReturn(HttpCommands.GET);
 
-        final CharBuffer buf = HTTP.serializeResponseHeader(response);
-        assertNotNull(buf);
-        final String message = buf.toString();
-        assertEquals("HTTP/1.1 200 OK\r\nContent-Length: 200\r\n\r\n", message);
+        final HttpResponse actualResponse = this.http.process(this.request);
+        assertNotNull(actualResponse);
+        assertEquals(this.response, actualResponse);
+
+    }
+
+    @Test
+    public void testOpenChannel() throws Exception {
+        final HttpChannel channel = this.http.openChannel();
+        assertNotNull(channel);
+
+    }
+
+    @Test
+    public void testGetDefaultPort() throws Exception {
+        assertEquals(80, this.http.getDefaultPort());
+    }
+
+    @Test
+    public void testConfigure() throws Exception {
+        final HierarchicalConfiguration config = new HierarchicalConfiguration();
+        config.addProperty("handler", "");
+        config.addProperty("handler.@class", "li.moskito.awtt.protocol.http.HTTPTest$TestHandler");
+        this.http.configure(config);
+
+        verify(this.mockHandler).configure(any(HierarchicalConfiguration.class));
+    }
+
+    @Test
+    public void testToHttpDate() throws Exception {
+        final Calendar cal = Calendar.getInstance();
+        cal.setTimeZone(TimeZone.getTimeZone("GMT"));
+        cal.set(Calendar.DAY_OF_WEEK, 5); // THU = 5
+        cal.set(Calendar.DAY_OF_MONTH, 8);
+        cal.set(Calendar.MONTH, 4); // MAY = 4
+        cal.set(Calendar.YEAR, 2014);
+        cal.set(Calendar.HOUR_OF_DAY, 13);
+        cal.set(Calendar.MINUTE, 49);
+        cal.set(Calendar.SECOND, 1);
+
+        final String httpDate = HTTP.toHttpDate(cal.getTime());
+        assertEquals("Thu, 08 May 2014 13:49:01 GMT", httpDate);
+    }
+
+    @Test
+    public void testHttpDateConversionRoundtrip() throws Exception {
+        final Date date = new Date(new Date().getTime() / 1000 * 1000); // strip ms
+        assertEquals(date, HTTP.fromHttpDate(HTTP.toHttpDate(date)));
+
+        final String httpDate = "Thu, 08 May 2014 13:49:01 GMT";
+        assertEquals(httpDate, HTTP.toHttpDate(HTTP.fromHttpDate(httpDate)));
+    }
+
+    @Test
+    public void testFromHttpDate_validDate() throws Exception {
+        final Date date = HTTP.fromHttpDate("Thu, 08 May 2014 13:49:01 GMT");
+        assertNotNull(date);
+        final Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+
+        assertEquals(5, cal.get(Calendar.DAY_OF_WEEK)); // 5 = THU
+        assertEquals(8, cal.get(Calendar.DAY_OF_MONTH));
+        assertEquals(4, cal.get(Calendar.MONTH)); // 4 = May
+        assertEquals(2014, cal.get(Calendar.YEAR));
+        assertEquals(15, cal.get(Calendar.HOUR_OF_DAY)); // in UTC!
+        assertEquals(49, cal.get(Calendar.MINUTE));
+        assertEquals(1, cal.get(Calendar.SECOND));
+    }
+
+    @Test
+    public void testCreateResponse() throws Exception {
+        final HttpResponse response = HTTP.createResponse(HttpStatusCodes.CONTINUE);
+        assertNotNull(response);
+        assertEquals(HttpStatusCodes.CONTINUE, response.getHeader().getStatusCode());
+    }
+
+    @SuppressWarnings({
+            "unchecked", "rawtypes"
+    })
+    @Test
+    public void testIsCloseChannelsAfterProcess_http11_close() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+        final HttpHeaderField connectionField = mock(HttpHeaderField.class);
+        when(connectionField.getValue()).thenReturn("close");
+        when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
+        when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
+
+        assertTrue(this.http.isCloseChannelsAfterProcess(this.request));
+    }
+
+    @Test
+    public void testIsCloseChannelsAfterProcess_http11_defaultKeepAlive() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+        assertFalse(this.http.isCloseChannelsAfterProcess(this.request));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testIsCloseChannelsAfterProcess_http10_keepAlive() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
+        @SuppressWarnings("rawtypes")
+        final HttpHeaderField connectionField = mock(HttpHeaderField.class);
+        when(connectionField.getValue()).thenReturn("keep-alive");
+        when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
+        when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
+
+        assertFalse(this.http.isCloseChannelsAfterProcess(this.request));
+    }
+
+    @Test
+    public void testIsCloseChannelsAfterProcess_http10_defaultClose() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
+        assertTrue(this.http.isCloseChannelsAfterProcess(this.request));
+    }
+
+    @Test
+    public void testGetKeepAliverHeaders() throws Exception {
+        final ConnectionHandlerParameters params = mock(ConnectionHandlerParameters.class);
+        when(params.getKeepAliveTimeout()).thenReturn(3);
+        when(params.getMaxMessagesPerConnection()).thenReturn(257);
+        final List<HeaderField<HeaderFieldDefinition, ?>> headers = this.http.getKeepAliverHeaders(params);
+        assertEquals(2, headers.size());
+        assertEquals(ResponseHeaders.CONNECTION, headers.get(0).getHeaderFieldDefinition());
+        assertEquals("Keep-Alive", headers.get(0).getValue());
+        assertEquals("Keep-Alive", headers.get(1).getHeaderFieldDefinition().getName());
+        assertEquals("timeout=3, max=257", headers.get(1).getValue());
+
     }
 
 }

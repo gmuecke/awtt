@@ -1,9 +1,36 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <awttServer type="li.moskito.awtt.server.MultiportServer">
+	<protocols>
+		<protocol name="http" class="li.moskito.awtt.protocol.http.HTTP">
+			<handler class="li.moskito.awtt.server.http.StaticFileContentRequestHandler">
+				<!-- BEGIN Handler specific configuration -->	
+				<!-- Location (as URI) that contains the files to be hosted -->
+				<contentRoot>file:/C:/http/htdocs</contentRoot>
+				<!-- ContentType - FileExtension mapping -->
+				<contentTypes>
+					<type mimeType="text/plain" fileExtension="txt" />
+					<type mimeType="text/html" fileExtension="htm" />
+					<type mimeType="text/html" fileExtension="html " />
+					<type mimeType="text/html" fileExtension="stm " />
+					<type mimeType="text/css" fileExtension="css" />
+					<type mimeType="image/bmp" fileExtension="bmp" />
+					<type mimeType="image/gif" fileExtension="gif" />
+					<type mimeType="image/png" fileExtension="png" />
+					<type mimeType="image/jpeg" fileExtension="jpg" />
+					<type mimeType="image/jpeg" fileExtension="jpeg" />
+					<type mimeType="image/jpeg" fileExtension="jpe" />
+					<type mimeType="image/tiff" fileExtension="tif" />
+					<type mimeType="image/tiff" fileExtension="tiff" />
+					<type mimeType="application/pdf" fileExtension="pdf" />
+				</contentTypes>
+				<!-- END Handler specific configuration -->
+			</handler>
+		</protocol>
+	</protocols>
 	<ports>
 		<listenPort hostname="" port="8080" protocol="http">
 			<connectionHandler
-				class="li.moskito.awtt.server.handler.BlockingConnectionHandler">
+				class="li.moskito.awtt.server.BlockingConnectionHandler">
 				<!-- Number of concurrent connections -->
 				<maxConnections>5</maxConnections>
 				<!-- Keep Alive timeout in seconds, remove element for closing after a message has been processed -->
@@ -11,30 +38,6 @@
 				<!-- Maximum of Messages before the connection closes. Remove element for unlimited -->
 				<maxMessagesPerConnection>100</maxMessagesPerConnection>
 			</connectionHandler>
-			<messageHandlers>
-				<handler
-					class="li.moskito.awtt.server.handler.StaticFileContentRequestHandler">
-					<!-- Location (as URI) that contains the files to be hosted -->
-					<contentRoot>file:/C:/http/htdocs</contentRoot>
-					<!-- ContentType - FileExtension mapping -->
-					<contentTypes>
-						<type mimeType="text/plain" fileExtension="txt" />
-						<type mimeType="text/html" fileExtension="htm" />
-						<type mimeType="text/html" fileExtension="html " />
-						<type mimeType="text/html" fileExtension="stm " />
-						<type mimeType="text/css" fileExtension="css" />
-						<type mimeType="image/bmp" fileExtension="bmp" />
-						<type mimeType="image/gif" fileExtension="gif" />
-						<type mimeType="image/png" fileExtension="png" />
-						<type mimeType="image/jpeg" fileExtension="jpg" />
-						<type mimeType="image/jpeg" fileExtension="jpeg" />
-						<type mimeType="image/jpeg" fileExtension="jpe" />
-						<type mimeType="image/tiff" fileExtension="tif" />
-						<type mimeType="image/tiff" fileExtension="tiff" />
-						<type mimeType="application/pdf" fileExtension="pdf" />
-					</contentTypes>
-				</handler>
-			</messageHandlers>
 		</listenPort>
 	</ports>
 </awttServer>
