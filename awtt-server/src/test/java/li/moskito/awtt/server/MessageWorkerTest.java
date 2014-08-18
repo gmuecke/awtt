@@ -81,6 +81,7 @@ public class MessageWorkerTest {
 
             }
         }.start();
+        Thread.sleep(200);
         this.clientChannel = SocketChannel.open(new InetSocketAddress(TEST_HOST, TEST_PORT));
         this.messageWorker = new MessageWorker(this.clientChannel, this.port, this.connectionParams);
     }
