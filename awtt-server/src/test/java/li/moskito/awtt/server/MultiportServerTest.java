@@ -2,6 +2,7 @@ package li.moskito.awtt.server;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
@@ -92,7 +93,7 @@ public class MultiportServerTest {
         assertEquals(11000, port.getPortNumber());
         final Protocol<?, ?, ?> protocol = port.getProtocol();
         assertNotNull(protocol);
-        assertEquals(TestProtocol.class, protocol.getClass());
+        assertTrue(protocol instanceof TestProtocol);
 
         this.subject.startServer();
         Thread.sleep(100); // wait some ms for the executer to execute his task
