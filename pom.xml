@@ -73,6 +73,7 @@
 			    <configuration>
 	    	        <forkCount>1</forkCount>
 	    	        <reuseForks>false</reuseForks>
+	    	        <argLine>-Xms32M -Xmx512M -XX:MaxPermSize=32M</argLine>
 			    </configuration>
 			</plugin>
 			
