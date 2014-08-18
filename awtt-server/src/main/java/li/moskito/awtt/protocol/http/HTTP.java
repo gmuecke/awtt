@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
@@ -51,13 +52,15 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
 
     public static final int HTTP_DEFAULT_PORT = 80;
     
-    public final static String HTTP_DATE_FORMAT = "EEE, d MMM yyy HH:mm:ss zzz";
+    public final static String HTTP_DATE_FORMAT = "EEE, dd MMM yyy HH:mm:ss zzz";
 
     // Thread safe date formatter
     private static final ThreadLocal<SimpleDateFormat> HTTP_DATE_FORMATTER = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
-            return new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.ENGLISH);
+            final SimpleDateFormat sdf = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.ENGLISH);
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+            return sdf;
         }
     };
 
@@ -155,7 +158,7 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
     }
 
     /**
-     * Creates a Response with the given StatusCode
+     * Convenience method to create a {@link HttpResponse} with the given {@link HttpStatusCodes}
      * 
      * @param statusCode
      *            the status code for the response
