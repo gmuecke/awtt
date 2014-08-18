@@ -5,25 +5,24 @@
 	<artifactId>awtt</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<name>Assembled with Tinker Toys</name>
+	<name>Assemble with Tinker Toys</name>
 
 	<properties>
 	
 		<!-- UTF-8 -->
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+		<skipTests>false</skipTests>
+
 		<!-- Unit and Integrationtesting (coverage) -->
-		<coverage.unit.test.path>${project.basedir}/../target/jacoco-ut.exec</coverage.unit.test.path>
-		<coverage.integration.test.path>${project.basedir}/../target/jacoco-it.exec</coverage.integration.test.path>
+		<coverage.unit.test.path>${project.basedir}/../target/jacoco.exec</coverage.unit.test.path>
 
 		<!-- Sonar -->
 		<sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
 		<sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
 		<sonar.jacoco.reportPath>${coverage.unit.test.path}</sonar.jacoco.reportPath>
-		<sonar.jacoco.itReportPath>${coverage.integration.test.path}</sonar.jacoco.itReportPath>
-		<jacoco.version>0.6.5.201403032054</jacoco.version>
-
-
+		<sonar.language>java</sonar.language>
+		<jacoco.version>0.7.1.201405082137</jacoco.version>
 
 		<!-- Java Technology Versions -->
 		<jee.version>6.0</jee.version>
@@ -50,25 +49,7 @@
 		<!-- Test Dependency Versions -->
 		<junit.version>4.11</junit.version>
 		<mockito.version>1.9.5</mockito.version>
-		
-		<!-- 
-		<cucumber.version>1.1.5</cucumber.version>
-		<selenium.version>2.40.0</selenium.version>
-		<arquillian.version>1.1.2.Final</arquillian.version>
-		<jmeter.version>2.10</jmeter.version>
-		<cukespace.version>1.5.5</cukespace.version>
-		<arquillian-jacoco.version>1.0.0.Alpha6</arquillian-jacoco.version>
-		<arquillian-performance-impl.version>1.0.0.CR1</arquillian-performance-impl.version>
-		<powermock.version>1.5.4</powermock.version>
-		<weld.se.version>2.2.1.Final</weld.se.version>
-		
 
-		<shrinkwrap-resolver.version>2.1.1</shrinkwrap-resolver.version>
-		
-		<xml.apis.version>1.4.01</xml.apis.version>
-		<http.components.version>4.3.2</http.components.version>
-		<http.client.version>4.3</http.client.version>
- 		-->
 	</properties>
 	
 	<!-- Unit and Integrationtesting (coverage) -->
@@ -104,9 +85,9 @@
 			    <artifactId>maven-surefire-plugin</artifactId>
 			    <version>2.17</version>
 			    <configuration>
-	    	        <forkCount>1</forkCount>
+	    	        <forkCount>4</forkCount>
 	    	        <reuseForks>false</reuseForks>
-	    	        <argLine>-Xms32M -Xmx512M -XX:MaxPermSize=32M</argLine>
+	    	        <argLine>${surefireArgLine}</argLine>
 			    </configuration>
 			</plugin>
 			<plugin>
@@ -116,32 +97,19 @@
 				<configuration>
 					<skip>${skipTests}</skip>
 					<includes>
-						<include>ch.inacta.*</include>
+						<include>li.moskito.*</include>
 					</includes>
 				</configuration>
 				<executions>
 					<execution>
-						<id>pre-test</id>
+						<id>prepare-agent</id>
 						<goals>
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
 							<destFile>${coverage.unit.test.path}</destFile>
 							<append>true</append>
-						</configuration>
-					</execution>
-
-					<!-- Failsafe use integrationtest-path as default -->
-					<execution>
-						<id>prepare-it-agent</id>
-						<phase>pre-integration-test</phase>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-						<configuration>
-							<destFile>${coverage.integration.test.path}</destFile>
-							<propertyName>failsafe.argLine</propertyName>
-							<append>true</append>
+							<propertyName>surefireArgLine</propertyName>
 						</configuration>
 					</execution>
 				</executions>
