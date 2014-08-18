@@ -193,7 +193,7 @@ public abstract class MessageChannel implements ByteChannel {
      */
     protected <T extends Message> T discardPartiallyWrittenMessage() {
         @SuppressWarnings("unchecked")
-        final T partialMessage = (T) this.partialReadMessage;
+        final T partialMessage = (T) this.partialWrittenMessage;
         this.partialWrittenMessage = null;
         return partialMessage;
     }
