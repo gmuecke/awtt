@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
@@ -37,10 +38,9 @@ public class MessageWorkerTest {
     private static final Logger LOG = LoggerFactory.getLogger(MessageWorkerTest.class);
 
     private static final String TEST_HOST = "localhost";
-    private static final int TEST_PORT = 11000;
+    private static final int TEST_PORT = 11010;
 
     private SocketChannel clientChannel;
-    private static boolean running = true;
 
     @Mock
     private ConnectionHandlerParameters connectionParams;
@@ -56,39 +56,32 @@ public class MessageWorkerTest {
 
     private MessageWorker messageWorker;
 
+    private TestServer server;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        running = true;
-        new Thread() {
-            @Override
-            public void run() {
-                LOG.info("Starting test server socket");
-                try (ServerSocketChannel serverChannel = ServerSocketChannel.open()) {
-                    serverChannel.bind(new InetSocketAddress(TEST_HOST, TEST_PORT));
-                    while (running) {
-                        final SocketChannel clientConnection = serverChannel.accept();
-                        LOG.info("connected from {}", clientConnection.getRemoteAddress());
-                        while (clientConnection.isConnected()) {
-                            Thread.sleep(200);
-                        }
-                        LOG.info("Client Connection closed");
-                    }
-                    LOG.info("Test Server socket closed");
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
 
-            }
-        }.start();
-        Thread.sleep(200);
+        this.server = new TestServer();
+        this.server.start();
+        Thread.sleep(100);
+        if (this.server.getStartupException() != null) {
+            throw this.server.getStartupException();
+        }
+
         this.clientChannel = SocketChannel.open(new InetSocketAddress(TEST_HOST, TEST_PORT));
         this.messageWorker = new MessageWorker(this.clientChannel, this.port, this.connectionParams);
     }
 
     @After
     public void tearDown() throws Exception {
-        running = false;
+        try {
+            this.clientChannel.close();
+        } catch (final IOException e) {
+            LOG.warn("Could not close client connection", e);
+        }
+        this.server.shutdown();
+
     }
 
     @Test
@@ -120,4 +113,46 @@ public class MessageWorkerTest {
 
     }
 
+    public static class TestServer extends Thread {
+
+        private final AtomicBoolean running = new AtomicBoolean(true);
+        private Exception startupException = null;
+        private ServerSocketChannel serverChannel;
+
+        @Override
+        public void run() {
+            LOG.info("Starting test server socket");
+            try (ServerSocketChannel serverChannel = ServerSocketChannel.open()) {
+                this.serverChannel = serverChannel;
+                serverChannel.bind(new InetSocketAddress(TEST_HOST, TEST_PORT));
+                while (this.running.get()) {
+                    final SocketChannel clientConnection = serverChannel.accept();
+                    LOG.info("connected from {}", clientConnection.getRemoteAddress());
+                    while (clientConnection.isConnected()) {
+                        Thread.sleep(10);
+                    }
+                    LOG.info("Client Connection closed");
+                }
+                LOG.info("Shutdown request received");
+            } catch (IOException | InterruptedException e) {
+                this.startupException = e;
+            } finally {
+                LOG.info("Test Server socket closed");
+            }
+        }
+
+        public Exception getStartupException() {
+            return this.startupException;
+        }
+
+        public void shutdown() {
+            LOG.info("Shutting down server");
+            this.running.set(false);
+            try {
+                this.serverChannel.close();
+            } catch (final IOException e) {
+                LOG.warn("Could not close server channel", e);
+            }
+        }
+    }
 }
