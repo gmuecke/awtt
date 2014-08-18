@@ -6,12 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import li.moskito.awtt.protocol.http.HttpCommands;
 import li.moskito.awtt.protocol.http.HttpRequest;
@@ -19,21 +21,25 @@ import li.moskito.awtt.protocol.http.HttpResponse;
 import li.moskito.awtt.protocol.http.HttpVersion;
 import li.moskito.awtt.protocol.http.ResponseHeaders;
 
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 public class StaticFileContentRequestHandlerTest {
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private HttpRequest httpRequest;
 
     private StaticFileContentRequestHandler subject;
 
     private HierarchicalConfiguration config;
+
+    private Path testFile;
 
     @Before
     public void setUp() throws Exception {
@@ -41,8 +47,28 @@ public class StaticFileContentRequestHandlerTest {
         this.config = new HierarchicalConfiguration();
         this.config.setExpressionEngine(new XPathExpressionEngine());
         this.subject = new StaticFileContentRequestHandler();
+        final String contentRoot = this.createTestContentRoot();
+        this.configureSubject(contentRoot);
 
         when(this.httpRequest.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+    }
+
+    private String createTestContentRoot() throws IOException {
+        final Path tempContentRoot = Files.createTempDirectory("contentRoot");
+
+        // create a test resource
+        this.testFile = Files.createTempFile(tempContentRoot, "testFile", ".txt");
+
+        return tempContentRoot.toUri().toString();
+    }
+
+    private void configureSubject(final String contentRoot) throws ConfigurationException {
+        this.config.addProperty("contentRoot", contentRoot);
+        this.config.addProperty("contentTypes", "");
+        this.config.addProperty("contentTypes/type", "");
+        this.config.addProperty("contentTypes/type/@mimeType", "text/plain");
+        this.config.addProperty("contentTypes/type/@fileExtension", "txt");
+        this.subject.configure(this.config);
     }
 
     @Test
@@ -70,26 +96,15 @@ public class StaticFileContentRequestHandlerTest {
     }
 
     @Test
-    public void testProcess() throws Exception {
-        // prepare
-
-        // configure the subject
-        final Path tempContentRoot = Files.createTempDirectory("contentRoot");
-        this.config.addProperty("contentRoot", tempContentRoot.toUri().toString());
-        this.config.addProperty("contentTypes", "");
-        this.config.addProperty("contentTypes/type", "");
-        this.config.addProperty("contentTypes/type/@fileExtension", "txt");
-        this.config.addProperty("contentTypes/type/@mimeType", "text/plain");
-        this.subject.configure(this.config);
-
-        // create a test resource
-        final Path testFile = Files.createTempFile(tempContentRoot, "testFile", ".txt");
-        final String expectedLastModifiedDate = new SimpleDateFormat("EEE, d MMM yyy HH:mm:ss zzz", Locale.ENGLISH)
-                .format(new Date(Files.getLastModifiedTime(testFile).toMillis()));
+    public void testOnGet() throws Exception {
+        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyy HH:mm:ss zzz", Locale.ENGLISH);
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+        final String expectedLastModifiedDate = sdf
+                .format(new Date(Files.getLastModifiedTime(this.testFile).toMillis()));
 
         // setup the request
         when(this.httpRequest.getCommand()).thenReturn(HttpCommands.GET);
-        when(this.httpRequest.getResource()).thenReturn(new URI(testFile.getFileName().toString()));
+        when(this.httpRequest.getResource()).thenReturn(new URI(this.testFile.getFileName().toString()));
 
         // act
         final HttpResponse httpResponse = this.subject.process(this.httpRequest);
