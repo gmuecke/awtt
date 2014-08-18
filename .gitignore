@@ -5,3 +5,4 @@ awtt-server/.settings/
 *.project
 *.classpath
 .sonar/
+target/

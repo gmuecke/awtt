@@ -3,18 +3,20 @@
  */
 package li.moskito.awtt.protocol.http;
 
+import li.moskito.awtt.protocol.ProtocolException;
+
 /**
- * Exception that is thrown when the protocol was not applied correctly
+ * Exception that is thrown when the http protocol was not or could not be applied correctly
  * 
  * @author Gerald
  */
-public class HttpProtocolException extends Exception {
+public class HttpProtocolException extends ProtocolException {
 
     /**
      * 
      */
     private static final long serialVersionUID = 6330199493104663309L;
-    private final String      originalInput;
+    private final String originalInput;
 
     /**
      * @param message
