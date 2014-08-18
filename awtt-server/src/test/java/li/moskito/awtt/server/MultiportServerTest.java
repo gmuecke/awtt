@@ -1,8 +1,11 @@
 package li.moskito.awtt.server;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.List;
@@ -22,18 +25,20 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
 
 public class MultiportServerTest {
 
-    @Spy
+    @Mock
     private TestProtocolHandler protocolHandler;
-    @Spy
+    @Mock
     private TestMessageChannel messageChannel;
-    @Spy
+    @Mock
     private TestProtocol protocol;
-    @Spy
+    @Mock
     private TestConnectionHandler connectionHandler;
 
     private MultiportServer subject;
@@ -42,10 +47,10 @@ public class MultiportServerTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        TestProtocolHandler.spy = this.protocolHandler;
-        TestMessageChannel.spy = this.messageChannel;
-        TestProtocol.spy = this.protocol;
-        TestConnectionHandler.spy = this.connectionHandler;
+        TestProtocolHandler.mock = this.protocolHandler;
+        TestMessageChannel.mock = this.messageChannel;
+        TestProtocol.mock = this.protocol;
+        TestConnectionHandler.mock = this.connectionHandler;
 
         this.subject = new MultiportServer();
         this.config = new HierarchicalConfiguration();
@@ -77,116 +82,122 @@ public class MultiportServerTest {
     public void testConfigureAndStartServer() throws Exception {
         this.subject.configure(this.config);
 
-        // // test if port was created and request handler added
-        // final Port port = TestConnectionHandler.spy.get(0).port;
-        // assertNotNull(port);
-        // assertEquals(InetAddress.getByName("localhost"), port.getHostname());
-        // assertEquals(11000, port.getPortNumber());
-        //
-        // this.subject.startServer();
-        // Thread.sleep(100); // wait some ms for the executer to execute his task
-        // assertTrue(TestConnectionHandler.instances.get(0).run);
-        fail("implement");
+        // test if port was created and request handler added
+        final ArgumentCaptor<Port> captor = ArgumentCaptor.forClass(Port.class);
+        Mockito.verify(TestConnectionHandler.mock).bind(captor.capture());
+        final Port port = captor.getValue();
+
+        assertNotNull(port);
+        assertEquals(InetAddress.getByName("localhost"), port.getHostname());
+        assertEquals(11000, port.getPortNumber());
+        final Protocol<?, ?, ?> protocol = port.getProtocol();
+        assertNotNull(protocol);
+        assertEquals(TestProtocol.class, protocol.getClass());
+
+        this.subject.startServer();
+        Thread.sleep(100); // wait some ms for the executer to execute his task
+        verify(TestConnectionHandler.mock).run();
+
+        // TODO add some more assertions regarding the protocol
 
     }
+    public static class TestProtocolHandler implements ProtocolHandler<Message, Message>, Configurable {
 
-    public static final class TestProtocolHandler implements ProtocolHandler<Message, Message>, Configurable {
-
-        public static TestProtocolHandler spy;
+        public static TestProtocolHandler mock;
 
         @Override
         public boolean accepts(final Message request) {
-            return spy.accepts(request);
+            return mock.accepts(request);
         }
 
         @Override
         public Message process(final Message request) {
-            return spy.process(request);
+            return mock.process(request);
         }
 
         @Override
         public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
-            spy.configure(config);
+            mock.configure(config);
         }
 
     }
 
-    public static final class TestMessageChannel extends MessageChannel {
+    public static class TestMessageChannel extends MessageChannel {
 
-        public static TestMessageChannel spy;
+        public static TestMessageChannel mock;
 
         @Override
         public Protocol<?, ?, ?> getProtocol() {
-            return spy.getProtocol();
+            return mock.getProtocol();
         }
 
         @Override
         protected Message parseMessage(final ByteBuffer src) throws ProtocolException, IOException {
-            return spy.parseMessage(src);
+            return mock.parseMessage(src);
         }
 
         @Override
         protected CharBuffer serializeHeader(final Header header) {
-            return spy.serializeHeader(header);
+            return mock.serializeHeader(header);
         }
 
     }
 
-    public static final class TestProtocol implements Protocol<Message, Message, TestMessageChannel> {
+    public static class TestProtocol implements Protocol<Message, Message, TestMessageChannel> {
 
-        public static TestProtocol spy;
+        public static TestProtocol mock;
 
         @Override
         public int getDefaultPort() {
-            return spy.getDefaultPort();
+            return mock.getDefaultPort();
         }
 
         @Override
         public TestMessageChannel openChannel() {
-            return spy.openChannel();
+            return mock.openChannel();
         }
 
         @Override
         public Message process(final Message message) {
-            return spy.process(message);
+            return mock.process(message);
         }
 
         @Override
         public boolean isCloseChannelsAfterProcess(final Message request) {
-            return spy.isCloseChannelsAfterProcess(request);
+            return mock.isCloseChannelsAfterProcess(request);
         }
 
         @Override
         public <D extends HeaderFieldDefinition, T extends HeaderField<D, ?>> List<T> getKeepAliverHeaders(
                 final ConnectionHandlerParameters connectionControl) {
-            return spy.getKeepAliverHeaders(connectionControl);
+            return mock.getKeepAliverHeaders(connectionControl);
         }
 
     }
 
-    public static final class TestConnectionHandler implements ConnectionHandler, Configurable {
+    public static class TestConnectionHandler implements ConnectionHandler, Configurable {
 
-        public static TestConnectionHandler spy;
+        public static TestConnectionHandler mock;
 
         @Override
         public void run() {
-            spy.run();
+            mock.run();
 
         }
 
         @Override
         public void bind(final Port port) {
-            spy.bind(port);
+            mock.bind(port);
         }
 
         @Override
         public void close() throws IOException {
-            spy.close();
+            mock.close();
         }
 
         @Override
         public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
-            spy.configure(config);
+            mock.configure(config);
         }
 
     }
