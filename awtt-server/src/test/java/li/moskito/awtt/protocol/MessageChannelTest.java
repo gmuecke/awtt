@@ -10,12 +10,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.ByteChannel;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -79,8 +85,68 @@ public class MessageChannelTest {
 
         final String actualMessage = StandardCharsets.ISO_8859_1.decode(this.buffer).toString();
         assertEquals(actualMessage, expectedMessage);
+    }
 
-        // TODO add tests for partial writes
+    @Test
+    public void testRead_ByteBuffer_resume() throws Exception {
+
+        final String expectedMessage = "TestMessage";
+        final String expectedContent = "TestContent";
+        // create a binary body using a file
+        final ByteChannel srcData = this.createBinaryChannel(expectedContent);
+        final Path tempFile = Files.createTempFile("binaryChannelData", "txt");
+        // create a target to stream to (which is a file too)
+        final FileChannel dest = FileChannel.open(tempFile, StandardOpenOption.WRITE);
+
+        // prepare message & mocked part of the channel
+        when(this.channel.serializeHeader(any(Header.class))).thenReturn(CharBuffer.wrap(expectedMessage));
+        final BinaryBody binBody = mock(BinaryBody.class);
+        when(this.outMessage.getBody()).thenReturn(binBody);
+        when(binBody.getByteChannel()).thenReturn(srcData);
+
+        // write a message to the channel
+        this.subject.write(this.outMessage);
+
+        // copy from the subject to the dest (this invokes the read method)
+        this.copy(this.subject, dest, ByteBuffer.allocate(16));
+        srcData.close();
+        dest.close();
+
+        assertEquals(expectedMessage + expectedContent, new String(Files.readAllBytes(tempFile)));
+    }
+
+    @Test(expected = BufferOverflowException.class)
+    public void testRead_ByteBuffer_Overflow() throws Exception {
+        final String expectedMessage = "TestMessage";
+        // prepare message & mocked part of the channel
+        when(this.channel.serializeHeader(any(Header.class))).thenReturn(CharBuffer.wrap(expectedMessage));
+
+        // write a message to the channel
+        this.subject.write(this.outMessage);
+
+        // read into a buffer that is too small to take the entire header
+        this.subject.read(ByteBuffer.allocate(5));
+    }
+
+    /**
+     * Copies the data from the source channel to the dest channel using the specified buffer as transfer buffer
+     * 
+     * @param src
+     * @param dest
+     * @param smallBuffer
+     * @throws IOException
+     */
+    private void copy(final ReadableByteChannel src, final WritableByteChannel dest, final ByteBuffer smallBuffer)
+            throws IOException {
+        while (src.read(smallBuffer) != -1) {
+            smallBuffer.flip();
+            dest.write(smallBuffer);
+            smallBuffer.compact();
+        }
+        smallBuffer.flip();
+        while (smallBuffer.hasRemaining()) {
+            dest.write(smallBuffer);
+        }
     }
 
     @Test(expected = IOException.class)
@@ -128,21 +194,35 @@ public class MessageChannelTest {
     @Test
     public void testWriteBody_binaryBody_binaryContent_complete() throws IOException {
         // prepare binary channel (from file)
-        final String testcontent = "TestContent";
-        final byte[] testContent = testcontent.getBytes();
-        final Path tempFile = Files.createTempFile("bodyDate", "txt");
-        Files.write(tempFile, testContent);
-        final FileChannel ch = FileChannel.open(tempFile);
+        final String testData = "TestContent";
+        final ByteChannel ch = this.createBinaryChannel(testData);
         // prepare body
         final BinaryBody body = mock(BinaryBody.class);
         when(body.getByteChannel()).thenReturn(ch);
 
         final int initialPosition = this.buffer.position();
-        assertEquals(testContent.length, this.subject.writeBody(body, this.buffer)); // eof
-        assertEquals(initialPosition + testContent.length, this.buffer.position());
+        assertEquals(testData.getBytes().length, this.subject.writeBody(body, this.buffer)); // eof
+        assertEquals(initialPosition + testData.getBytes().length, this.buffer.position());
         this.buffer.flip();
         final String writtenBody = StandardCharsets.ISO_8859_1.decode(this.buffer).toString();
-        assertEquals(testcontent, writtenBody);
+        assertEquals(testData, writtenBody);
+    }
+
+    /**
+     * Creates a BinaryChannel delivering the testContent. The method creates a temporary file with the content and
+     * opens a file channel on that file
+     * 
+     * @param testContent
+     * @return
+     * @throws IOException
+     */
+    private ByteChannel createBinaryChannel(final String testContent, final OpenOption... openOptions)
+            throws IOException {
+        final byte[] testBinaryContent = testContent.getBytes();
+        final Path tempFile = Files.createTempFile("binaryChannelData", "txt");
+        Files.write(tempFile, testBinaryContent);
+        final FileChannel ch = FileChannel.open(tempFile, openOptions);
+        return ch;
     }
 
     @Test
