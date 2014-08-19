@@ -6,6 +6,7 @@
 				<!-- BEGIN Handler specific configuration -->	
 				<!-- Location (as URI) that contains the files to be hosted -->
 				<contentRoot>file:/C:/http/htdocs</contentRoot>
+				<indexFile>index.html</indexFile>
 				<!-- ContentType - FileExtension mapping -->
 				<contentTypes>
 					<type mimeType="text/plain" fileExtension="txt" />

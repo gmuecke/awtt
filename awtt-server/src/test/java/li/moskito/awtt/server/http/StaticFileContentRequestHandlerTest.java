@@ -48,6 +48,8 @@ public class StaticFileContentRequestHandlerTest {
 
     private Path testFile;
 
+    private Path pathWithNoIndex;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -62,15 +64,14 @@ public class StaticFileContentRequestHandlerTest {
 
     private String createTestContentRoot() throws IOException {
         final Path tempContentRoot = Files.createTempDirectory("contentRoot");
-
-        // create a test resource
+        this.pathWithNoIndex = Files.createTempDirectory(tempContentRoot, "noIndex");
         this.testFile = Files.createTempFile(tempContentRoot, "testFile", ".txt");
-
         return tempContentRoot.toUri().toString();
     }
 
     private void configureSubject(final String contentRoot) throws ConfigurationException {
         this.config.addProperty("contentRoot", contentRoot);
+        this.config.addProperty("indexFile", this.testFile.getFileName().toString());
         this.config.addProperty("contentTypes", "");
         this.config.addProperty("contentTypes/type", "");
         this.config.addProperty("contentTypes/type/@mimeType", "text/plain");
@@ -79,27 +80,118 @@ public class StaticFileContentRequestHandlerTest {
     }
 
     @Test
-    public void testAccepts_supportedCommand() throws Exception {
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.GET);
+    public void testAccepts_supportedCommand_and_existingFile() throws Exception {
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource(this.testFile);
         assertTrue(this.subject.accepts(this.httpRequest));
     }
 
     @Test
-    public void testAccepts_unsupportedCommand() throws Exception {
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.POST);
+    public void testAccepts_directoryWithIndex() throws Exception {
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource("/");
+        assertTrue(this.subject.accepts(this.httpRequest));
+    }
+
+    @Test
+    public void testAccepts_nonExistingResource_reject() throws Exception {
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource("trallala");
         assertFalse(this.subject.accepts(this.httpRequest));
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.PUT);
+    }
+
+    @Test
+    public void testAccepts_directoryWithoutIndex_reject() throws Exception {
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource("/" + this.pathWithNoIndex.getFileName() + "/");
         assertFalse(this.subject.accepts(this.httpRequest));
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.DELETE);
+    }
+
+    @Test
+    public void testAccepts_unsupportedCommand_reject() throws Exception {
+        this.setupResource(this.testFile);
+        this.setupCommand(HttpCommands.POST);
         assertFalse(this.subject.accepts(this.httpRequest));
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.HEAD);
+        this.setupCommand(HttpCommands.PUT);
         assertFalse(this.subject.accepts(this.httpRequest));
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.OPTIONS);
+        this.setupCommand(HttpCommands.DELETE);
         assertFalse(this.subject.accepts(this.httpRequest));
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.TRACE);
+        this.setupCommand(HttpCommands.HEAD);
         assertFalse(this.subject.accepts(this.httpRequest));
-        when(this.httpRequest.getCommand()).thenReturn(HttpCommands.CONNECT);
+        this.setupCommand(HttpCommands.OPTIONS);
         assertFalse(this.subject.accepts(this.httpRequest));
+        this.setupCommand(HttpCommands.TRACE);
+        assertFalse(this.subject.accepts(this.httpRequest));
+        this.setupCommand(HttpCommands.CONNECT);
+        assertFalse(this.subject.accepts(this.httpRequest));
+    }
+
+    @Test
+    public void testOnGet_relativePathToParent() throws Exception {
+
+        // setup the request
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource(".././../" + this.testFile.getFileName());
+        final String expectedLastModifiedDate = this.toHttpDate(Files.getLastModifiedTime(this.testFile).toMillis());
+
+        // act
+        final HttpResponse httpResponse = this.subject.process(this.httpRequest);
+
+        // assert
+        assertNotNull(httpResponse);
+        this.assertStatus(HttpStatusCodes.OK, httpResponse);
+        this.assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
+        this.assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
+    }
+
+    @Test
+    public void testOnGet_indexedPath() throws Exception {
+
+        // setup the request
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource("/");
+        // the test file is the index file
+        final String expectedLastModifiedDate = this.toHttpDate(Files.getLastModifiedTime(this.testFile).toMillis());
+
+        // act
+        final HttpResponse httpResponse = this.subject.process(this.httpRequest);
+
+        // assert
+        assertNotNull(httpResponse);
+        this.assertStatus(HttpStatusCodes.OK, httpResponse);
+        this.assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
+        this.assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
+    }
+
+    @Test
+    public void testOnGet_nonIndexedPath() throws Exception {
+
+        // setup the request
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource("/" + this.pathWithNoIndex.getFileName() + "/");
+
+        // act
+        final HttpResponse httpResponse = this.subject.process(this.httpRequest);
+
+        // assert
+        assertNotNull(httpResponse);
+        this.assertStatus(HttpStatusCodes.NOT_FOUND, httpResponse);
+    }
+
+    @Test
+    public void testOnGet_missingResource() throws Exception {
+
+        // setup the request
+        this.setupCommand(HttpCommands.GET);
+        this.setupResource("trallala");
+        // the test file is the index file
+
+        // act
+        final HttpResponse httpResponse = this.subject.process(this.httpRequest);
+
+        // assert
+        assertNotNull(httpResponse);
+        this.assertStatus(HttpStatusCodes.NOT_FOUND, httpResponse);
     }
 
     @Test
@@ -108,7 +200,7 @@ public class StaticFileContentRequestHandlerTest {
         final String expectedLastModifiedDate = this.toHttpDate(Files.getLastModifiedTime(this.testFile).toMillis());
 
         // setup the request
-        this.setupCommmand(HttpCommands.GET);
+        this.setupCommand(HttpCommands.GET);
         this.setupResource(this.testFile);
 
         // act
@@ -130,7 +222,7 @@ public class StaticFileContentRequestHandlerTest {
         final String expectedLastModifiedDate = this.toHttpDate(Files.getLastModifiedTime(this.testFile).toMillis());
 
         // setup the request
-        this.setupCommmand(HttpCommands.GET);
+        this.setupCommand(HttpCommands.GET);
         this.setupResource(this.testFile);
         this.setupHeaderField(IF_MODIFIED_SINCE, ifModifiedDate);
 
@@ -154,7 +246,7 @@ public class StaticFileContentRequestHandlerTest {
         final String expectedLastModifiedDate = this.toHttpDate(Files.getLastModifiedTime(this.testFile).toMillis());
 
         // setup the request
-        this.setupCommmand(HttpCommands.GET);
+        this.setupCommand(HttpCommands.GET);
         this.setupResource(this.testFile);
         this.setupHeaderField(IF_MODIFIED_SINCE, ifModifiedDate);
 
@@ -177,7 +269,7 @@ public class StaticFileContentRequestHandlerTest {
         this.toHttpDate(Files.getLastModifiedTime(this.testFile).toMillis());
 
         // setup the request
-        this.setupCommmand(HttpCommands.GET);
+        this.setupCommand(HttpCommands.GET);
         this.setupResource(this.testFile);
         this.setupHeaderField(IF_MODIFIED_SINCE, ifModifiedDate);
 
@@ -225,7 +317,18 @@ public class StaticFileContentRequestHandlerTest {
      * @throws URISyntaxException
      */
     private void setupResource(final Path pathToResource) throws URISyntaxException {
-        when(this.httpRequest.getResource()).thenReturn(new URI(pathToResource.getFileName().toString()));
+        this.setupResource(pathToResource.getFileName().toString());
+
+    }
+
+    /**
+     * sets up the mock request with the specified resource
+     * 
+     * @param resourcePath
+     * @throws URISyntaxException
+     */
+    private void setupResource(final String resourcePath) throws URISyntaxException {
+        when(this.httpRequest.getResource()).thenReturn(new URI(resourcePath));
 
     }
 
@@ -235,7 +338,7 @@ public class StaticFileContentRequestHandlerTest {
      * @param cmd
      *            the command to set
      */
-    private void setupCommmand(final HttpCommands cmd) {
+    private void setupCommand(final HttpCommands cmd) {
         when(this.httpRequest.getCommand()).thenReturn(cmd);
 
     }
