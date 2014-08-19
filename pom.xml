@@ -89,7 +89,7 @@
 	    	        <reuseForks>false</reuseForks>
 	    	        <runOrder>random</runOrder>
 	    	        <enableAssertions>true</enableAssertions>
-	    	        <argLine>-Xms32m -Xmx512m ${surefireArgLine}</argLine>
+	    	        <argLine>-Xms64M -Xmx512M ${surefireArgLine}</argLine>
 			    </configuration>
 			</plugin>
 			<plugin>
