@@ -14,13 +14,13 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class HeaderFieldTest {
     @Mock
-    private Object headerFieldDefinition;
+    private HeaderFieldDefinition headerFieldDefinition;
 
     @Mock
     private Object value;
 
     @InjectMocks
-    private HeaderField<Object, Object> headerField;
+    private HeaderField headerField;
 
     @Before
     public void setUp() throws Exception {
@@ -29,7 +29,7 @@ public class HeaderFieldTest {
 
     @Test
     public void testHeaderField_Name() throws Exception {
-        this.headerField = new HeaderField<>(this.headerFieldDefinition);
+        this.headerField = new HeaderField(this.headerFieldDefinition);
         assertEquals(this.headerFieldDefinition, this.headerField.getHeaderFieldDefinition());
         assertNull(this.headerField.getValue());
 
@@ -37,7 +37,7 @@ public class HeaderFieldTest {
 
     @Test
     public void testHeaderField_NameAndValue() throws Exception {
-        this.headerField = new HeaderField<>(this.headerFieldDefinition, this.value);
+        this.headerField = new HeaderField(this.headerFieldDefinition, this.value);
         assertEquals(this.headerFieldDefinition, this.headerField.getHeaderFieldDefinition());
         assertEquals(this.value, this.headerField.getValue());
     }

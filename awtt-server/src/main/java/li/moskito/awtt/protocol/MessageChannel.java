@@ -76,7 +76,7 @@ public abstract class MessageChannel implements ByteChannel {
      * 
      * @author Gerald
      */
-    protected class OnMessageReadCallback {
+    protected static class OnMessageReadCallback {
 
         private final MessageChannel channel;
 
@@ -166,7 +166,7 @@ public abstract class MessageChannel implements ByteChannel {
      * 
      * @return
      */
-    public abstract Protocol<?, ?, ?> getProtocol();
+    public abstract Protocol getProtocol();
 
     /**
      * Suspends the write processes and puts the partially written message on hold. Upon the next read call the message

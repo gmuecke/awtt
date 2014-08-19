@@ -32,7 +32,7 @@ public abstract class HttpMessage extends Message {
      *            the value to be set
      */
     public void addField(final HeaderFieldDefinition name, final Object value) {
-        this.getHeader().addField(new HttpHeaderField<HeaderFieldDefinition>(name, value.toString()));
+        this.getHeader().addField(new HttpHeaderField(name, value.toString()));
     }
 
     @Override

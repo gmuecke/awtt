@@ -8,7 +8,6 @@ import java.util.List;
 
 import li.moskito.awtt.protocol.Header;
 import li.moskito.awtt.protocol.HeaderField;
-import li.moskito.awtt.protocol.HeaderFieldDefinition;
 
 /**
  * A HTTP header that can be used either for requests or responses, depending on the constructor used.
@@ -115,25 +114,13 @@ public class HttpHeader extends Header {
         return this.statusCode != null;
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T extends HeaderFieldDefinition> HttpHeaderField<T> getField(final T headerFieldDefinition) {
-        return (HttpHeaderField<T>) super.getField(headerFieldDefinition);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public List<HttpHeaderField<? extends HeaderFieldDefinition>> getFields() {
-        return super.getFields();
-    }
-
     /**
      * @param fields
      */
     @SuppressWarnings("unchecked")
-    public <T extends HeaderFieldDefinition> void addHttpHeaderFields(final List<HttpHeaderField<?>> fields) {
+    public void addHttpHeaderFields(final List<HttpHeaderField> fields) {
         final List<?> typeErasedFields = fields;
-        super.addFields((List<HeaderField<T, ?>>) typeErasedFields);
+        super.addFields((List<HeaderField>) typeErasedFields);
 
     }
 

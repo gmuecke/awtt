@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 
 import li.moskito.awtt.protocol.Header;
+import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
@@ -28,7 +29,7 @@ public class HttpChannel extends MessageChannel {
     /**
      * SLF4J Logger for this class
      */
-    public static final Logger LOG = LoggerFactory.getLogger(HttpChannel.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HttpChannel.class);
 
     private final HTTP protocol;
 
@@ -41,7 +42,7 @@ public class HttpChannel extends MessageChannel {
     }
 
     @Override
-    public Protocol<?, ?, ?> getProtocol() {
+    public Protocol getProtocol() {
         return this.protocol;
     }
 
@@ -67,14 +68,17 @@ public class HttpChannel extends MessageChannel {
         }
         final HttpRequest result = this.parseRequestLine(requestLine);
 
-        final List<HttpHeaderField<?>> fields = new ArrayList<>();
-        for (String fieldLine = this.readLine(charBuffer); fieldLine != null;) {
+        final List<HttpHeaderField> fields = new ArrayList<>();
+
+        String fieldLine = this.readLine(charBuffer);
+        while (fieldLine != null) {
             if (fieldLine.trim().isEmpty()) {
                 break; // reached end of header
             }
             fields.add(this.parseRequestHeaderField(fieldLine));
             fieldLine = this.readLine(charBuffer);
         }
+
         result.getHeader().addHttpHeaderFields(fields);
         return result;
     }
@@ -89,7 +93,7 @@ public class HttpChannel extends MessageChannel {
      * @throws HttpProtocolException
      */
     private String readLine(final CharBuffer charBuffer) throws HttpProtocolException {
-        final StringBuffer buf = new StringBuffer(8);
+        final StringBuilder buf = new StringBuilder(8);
 
         boolean eol = false;
         while (charBuffer.hasRemaining() && !eol) {
@@ -150,14 +154,14 @@ public class HttpChannel extends MessageChannel {
      *            the string containing a line describing a field and its value
      * @return the request header field
      */
-    private HttpHeaderField<RequestHeaders> parseRequestHeaderField(final String fieldLine)
-            throws HttpProtocolException {
+    private HttpHeaderField parseRequestHeaderField(final String fieldLine) throws HttpProtocolException {
         final Matcher matcher = HTTP.HTTP_REQUEST_FIELD_PATTERN.matcher(fieldLine);
 
-        final HttpHeaderField<RequestHeaders> field;
+        final HttpHeaderField field;
+
         if (matcher.matches() && matcher.groupCount() >= 2) {
 
-            field = new HttpHeaderField<>(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
+            field = new HttpHeaderField(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
 
         } else {
             throw new HttpProtocolException("Field '" + fieldLine + "' does not conform to http standard");
@@ -180,9 +184,9 @@ public class HttpChannel extends MessageChannel {
      * @return a CharBuffer containing the response in character representation
      */
     private CharBuffer serializeHeader(final HttpHeader header) {
-        final StringBuffer buf = new StringBuffer(128);
+        final StringBuilder buf = new StringBuilder(128);
         buf.append(header.getVersion()).append(' ').append(header.getStatusCode()).append(HTTP.CRLF);
-        for (final HttpHeaderField<?> field : header.getFields()) {
+        for (final HeaderField field : header.getFields()) {
             buf.append(field).append(HTTP.CRLF);
         }
         buf.append(HTTP.CRLF);

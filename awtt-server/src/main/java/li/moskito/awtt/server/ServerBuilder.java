@@ -14,7 +14,8 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
  */
 public final class ServerBuilder {
 
-    private ServerBuilder() {}
+    private ServerBuilder() {
+    }
 
     public static Server buildFromConfiguration(final HierarchicalConfiguration conf) throws ConfigurationException {
         final Server server;

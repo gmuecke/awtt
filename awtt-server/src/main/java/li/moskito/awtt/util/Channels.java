@@ -11,7 +11,10 @@ import java.nio.channels.WritableByteChannel;
 /**
  * @author Gerald
  */
-public class Channels {
+public final class Channels {
+
+    private Channels() {
+    }
 
     public static void stream(final ReadableByteChannel src, final WritableByteChannel dest) throws IOException {
         // streaming implementation from

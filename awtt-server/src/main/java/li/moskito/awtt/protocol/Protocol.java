@@ -13,7 +13,7 @@ import li.moskito.awtt.server.ConnectionHandlerParameters;
  * 
  * @author Gerald
  */
-public interface Protocol<I extends Message, O extends Message, C extends MessageChannel> {
+public interface Protocol {
 
     /**
      * The default port for the protocol. Most protocols are bound to a specific protocol.
@@ -27,7 +27,7 @@ public interface Protocol<I extends Message, O extends Message, C extends Messag
      * 
      * @return a message channel over which messages could be read and written.
      */
-    C openChannel();
+    MessageChannel openChannel();
 
     /**
      * Processes the message.
@@ -37,7 +37,7 @@ public interface Protocol<I extends Message, O extends Message, C extends Messag
      * @return the message that should be returned in response to the input message or <code>null</code> if there is no
      *         response
      */
-    O process(I message);
+    Message process(Message message);
 
     /**
      * Determines if the channels should be closed after the request has been processed
@@ -56,6 +56,5 @@ public interface Protocol<I extends Message, O extends Message, C extends Messag
      * @return a list of header fields that can be added to a response in order to inform the receiver on how to handle
      *         the connection
      */
-    <D extends HeaderFieldDefinition, T extends HeaderField<D, ?>> List<T> getKeepAliverHeaders(
-            ConnectionHandlerParameters connectionControl);
+    List<HeaderField> getKeepAliverHeaders(ConnectionHandlerParameters connectionControl);
 }

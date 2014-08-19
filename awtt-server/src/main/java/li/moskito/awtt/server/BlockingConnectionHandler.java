@@ -52,7 +52,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
 
         } catch (final IOException e) {
             LOG.error("Could not create server socket", e);
-            throw new RuntimeException(e);
+            throw new ServerRuntimeException(e);
         }
     }
 
@@ -83,7 +83,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
                 this.dispatchClientConnection(client, connectionExecutorService);
 
             } catch (final IOException e) {
-                throw new RuntimeException("Error occured", e);
+                throw new ServerRuntimeException("Error occured", e);
             }
         }
     }

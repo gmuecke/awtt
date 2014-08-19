@@ -17,7 +17,7 @@ public class Port {
 
     private final int port;
     private final InetAddress hostname;
-    private final Protocol<?, ?, ?> protocol;
+    private final Protocol protocol;
 
     /**
      * Creates a new port with the default port of the protocol
@@ -27,7 +27,7 @@ public class Port {
      * @param protocol
      *            the protocol to accept on the port
      */
-    public Port(final InetAddress hostname, final Protocol<?, ?, ?> protocol) {
+    public Port(final InetAddress hostname, final Protocol protocol) {
         this(hostname, protocol.getDefaultPort(), protocol);
     }
 
@@ -35,7 +35,7 @@ public class Port {
      * @param hostname
      * @param port
      */
-    public Port(final InetAddress hostname, final int port, final Protocol<?, ?, ?> protocol) {
+    public Port(final InetAddress hostname, final int port, final Protocol protocol) {
         super();
         this.hostname = hostname;
         this.port = port;
@@ -50,7 +50,7 @@ public class Port {
         return this.hostname;
     }
 
-    public Protocol<?, ?, ?> getProtocol() {
+    public Protocol getProtocol() {
         return this.protocol;
     }
 
