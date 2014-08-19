@@ -103,13 +103,12 @@ public class MultiportServer implements Server {
      * @throws ConfigurationException
      *             when the protocol can not be created from the provided configuration
      */
-    private Protocol<?, ?, ?> createProtocol(final HierarchicalConfiguration protocolConfig)
-            throws ConfigurationException {
+    private Protocol createProtocol(final HierarchicalConfiguration protocolConfig) throws ConfigurationException {
 
         final String protocolName = protocolConfig.getString("@name");
         final ProtocolRegistry registry = ProtocolRegistry.getInstance();
 
-        final Protocol<?, ?, ?> protocol;
+        final Protocol protocol;
 
         // if the protocol has already been registered, use the one from the registry
         if (registry.isAvailable(protocolName)) {
@@ -117,7 +116,7 @@ public class MultiportServer implements Server {
         } else {
             // otherwise create a new and register it
             try {
-                protocol = (Protocol<?, ?, ?>) Class.forName(protocolConfig.getString("@class")).newInstance();
+                protocol = (Protocol) Class.forName(protocolConfig.getString("@class")).newInstance();
                 registry.registerProtocol(protocolName, protocol);
             } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
                 throw new ConfigurationException("Could not create protocol", e);

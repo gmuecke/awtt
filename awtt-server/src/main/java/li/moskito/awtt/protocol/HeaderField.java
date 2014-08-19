@@ -3,20 +3,15 @@
  */
 package li.moskito.awtt.protocol;
 
-
 /**
  * Denotes a HeaderField of a Message. The header field is associated with a {@link HeaderFieldDefinition} and a value.
  * 
  * @author Gerald
- * @param <N>
- *            type of the {@link HeaderFieldDefinition}
- * @param <V>
- *            type of the value of the header
  */
-public class HeaderField<N, V> {
+public class HeaderField {
 
-    private final N headerFieldDefinition;
-    private V value;
+    private final HeaderFieldDefinition headerFieldDefinition;
+    private Object value;
 
     /**
      * Constructor to create a header field without a value. The value can be set later
@@ -24,7 +19,7 @@ public class HeaderField<N, V> {
      * @param headerFieldDefinition
      *            the headerFieldDefinition to which this header field provides a concrete instance
      */
-    public HeaderField(final N headerFieldDefinition) {
+    public HeaderField(final HeaderFieldDefinition headerFieldDefinition) {
         super();
         this.headerFieldDefinition = headerFieldDefinition;
     }
@@ -37,7 +32,7 @@ public class HeaderField<N, V> {
      * @param value
      *            the initial value of the header field.
      */
-    public HeaderField(final N headerFieldDefinition, final V value) {
+    public HeaderField(final HeaderFieldDefinition headerFieldDefinition, final Object value) {
         this(headerFieldDefinition);
         this.value = value;
     }
@@ -47,7 +42,7 @@ public class HeaderField<N, V> {
      * 
      * @return
      */
-    public V getValue() {
+    public Object getValue() {
         return this.value;
     }
 
@@ -56,7 +51,7 @@ public class HeaderField<N, V> {
      * 
      * @param value
      */
-    public void setValue(final V value) {
+    public void setValue(final Object value) {
         this.value = value;
     }
 
@@ -65,7 +60,7 @@ public class HeaderField<N, V> {
      * 
      * @return
      */
-    public N getHeaderFieldDefinition() {
+    public HeaderFieldDefinition getHeaderFieldDefinition() {
         return this.headerFieldDefinition;
     }
 

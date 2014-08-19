@@ -5,6 +5,8 @@ package li.moskito.awtt.protocol.http;
 
 import java.net.URI;
 
+import li.moskito.awtt.protocol.HeaderField;
+
 /**
  * @author Gerald
  */
@@ -47,7 +49,7 @@ public class HttpRequest extends HttpMessage {
         buf.append(this.getCommand()).append(' ').append(this.getResource()).append(' ')
                 .append(this.getHeader().getVersion()).append(HTTP.CRLF);
 
-        for (final HttpHeaderField<?> field : this.getHeader().getFields()) {
+        for (final HeaderField field : this.getHeader().getFields()) {
             buf.append(field).append(HTTP.CRLF);
         }
         buf.append(HTTP.CRLF);

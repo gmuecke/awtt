@@ -98,9 +98,7 @@ public class MessageWorker implements Runnable {
      */
     private boolean processMessage(final Message request) throws IOException {
 
-        @SuppressWarnings("unchecked")
-        final Protocol<Message, Message, MessageChannel> protocol = (Protocol<Message, Message, MessageChannel>) this.port
-                .getProtocol();
+        final Protocol protocol = this.port.getProtocol();
 
         final Message response = protocol.process(request);
 
@@ -128,7 +126,7 @@ public class MessageWorker implements Runnable {
      *            the request containing possibly information from the information how to handle the connection
      * @return <code>true</code> if the connection should be kept alive
      */
-    private boolean isKeepAlive(final Protocol<Message, Message, MessageChannel> protocol, final Message request) {
+    private boolean isKeepAlive(final Protocol protocol, final Message request) {
         final boolean keepAlive = !protocol.isCloseChannelsAfterProcess(request);
         final boolean timeoutReached = this.timeout < System.currentTimeMillis();
         final boolean messageLimitReached = this.numMessages == 0;

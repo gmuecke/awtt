@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 
 import li.moskito.awtt.protocol.Header;
+import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
@@ -41,7 +42,7 @@ public class HttpChannel extends MessageChannel {
     }
 
     @Override
-    public Protocol<?, ?, ?> getProtocol() {
+    public Protocol getProtocol() {
         return this.protocol;
     }
 
@@ -67,7 +68,7 @@ public class HttpChannel extends MessageChannel {
         }
         final HttpRequest result = this.parseRequestLine(requestLine);
 
-        final List<HttpHeaderField<?>> fields = new ArrayList<>();
+        final List<HttpHeaderField> fields = new ArrayList<>();
 
         String fieldLine = this.readLine(charBuffer);
         while (fieldLine != null) {
@@ -153,14 +154,14 @@ public class HttpChannel extends MessageChannel {
      *            the string containing a line describing a field and its value
      * @return the request header field
      */
-    private HttpHeaderField<RequestHeaders> parseRequestHeaderField(final String fieldLine)
-            throws HttpProtocolException {
+    private HttpHeaderField parseRequestHeaderField(final String fieldLine) throws HttpProtocolException {
         final Matcher matcher = HTTP.HTTP_REQUEST_FIELD_PATTERN.matcher(fieldLine);
 
-        final HttpHeaderField<RequestHeaders> field;
+        final HttpHeaderField field;
+
         if (matcher.matches() && matcher.groupCount() >= 2) {
 
-            field = new HttpHeaderField<>(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
+            field = new HttpHeaderField(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
 
         } else {
             throw new HttpProtocolException("Field '" + fieldLine + "' does not conform to http standard");
@@ -185,7 +186,7 @@ public class HttpChannel extends MessageChannel {
     private CharBuffer serializeHeader(final HttpHeader header) {
         final StringBuilder buf = new StringBuilder(128);
         buf.append(header.getVersion()).append(' ').append(header.getStatusCode()).append(HTTP.CRLF);
-        for (final HttpHeaderField<?> field : header.getFields()) {
+        for (final HeaderField field : header.getFields()) {
             buf.append(field).append(HTTP.CRLF);
         }
         buf.append(HTTP.CRLF);

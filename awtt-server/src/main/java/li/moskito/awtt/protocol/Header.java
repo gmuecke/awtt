@@ -24,21 +24,19 @@ public abstract class Header {
 
     private final ProtocolVersion version;
 
-    private final Map<HeaderFieldDefinition, HeaderField<? extends HeaderFieldDefinition, ?>> fields;
+    private final Map<HeaderFieldDefinition, HeaderField> fields;
 
     /**
      * Comparator for sorting header fields
      * 
      * @author Gerald
      */
-    private static final class HeaderFieldComparator implements
-            Comparator<HeaderField<? extends HeaderFieldDefinition, ?>>, Serializable {
+    private static final class HeaderFieldComparator implements Comparator<HeaderField>, Serializable {
 
         private static final long serialVersionUID = 2432933502724826836L;
 
         @Override
-        public int compare(final HeaderField<? extends HeaderFieldDefinition, ?> paramT1,
-                final HeaderField<? extends HeaderFieldDefinition, ?> paramT2) {
+        public int compare(final HeaderField paramT1, final HeaderField paramT2) {
             return paramT1.getHeaderFieldDefinition().getName().compareTo(paramT2.getHeaderFieldDefinition().getName());
         }
     }
@@ -59,15 +57,11 @@ public abstract class Header {
      * 
      * @return a list of header fields
      */
-    @SuppressWarnings({
-            "unchecked", "rawtypes"
-    })
-    public <T extends HeaderField<? extends HeaderFieldDefinition, ?>> List<T> getFields() {
-        final List<HeaderField<? extends HeaderFieldDefinition, ?>> result = new ArrayList<>();
+    public List<HeaderField> getFields() {
+        final List<HeaderField> result = new ArrayList<>();
         result.addAll(this.fields.values());
         Collections.sort(result, COMPARATOR);
-        // TODO fix inconvertible types (cast to List<T> should work in Maven/Bamboo as well!)
-        return (List) result;
+        return result;
     }
 
     /**
@@ -75,13 +69,13 @@ public abstract class Header {
      * 
      * @param fields
      */
-    public <T extends HeaderFieldDefinition> void addFields(final List<HeaderField<T, ?>> fields) {
-        for (final HeaderField<T, ?> field : fields) {
+    public void addFields(final List<HeaderField> fields) {
+        for (final HeaderField field : fields) {
             this.addField(field);
         }
     }
 
-    public <T extends HeaderFieldDefinition> void addField(final HeaderField<T, ?> field) {
+    public void addField(final HeaderField field) {
         this.fields.put(field.getHeaderFieldDefinition(), field);
     }
 
@@ -101,9 +95,8 @@ public abstract class Header {
      *            the headerFieldDefinition for which the header field should be retrieved
      * @return the corresponding HeaderField or <code>null</code> if no such field was found
      */
-    @SuppressWarnings("unchecked")
-    public <T extends HeaderFieldDefinition> HeaderField<T, ?> getField(final T headerFieldDefinition) {
-        return (HeaderField<T, ?>) this.fields.get(headerFieldDefinition);
+    public HeaderField getField(final HeaderFieldDefinition headerFieldDefinition) {
+        return this.fields.get(headerFieldDefinition);
     }
 
     /**

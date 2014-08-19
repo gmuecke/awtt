@@ -81,9 +81,9 @@ public class HttpHeaderTest {
 
     @Test
     public void testAddHttpHeaderFields() throws Exception {
-        final List<HttpHeaderField<?>> fields = new ArrayList<>();
-        fields.add(new HttpHeaderField<RequestHeaders>(RequestHeaders.CONNECTION, "aValue"));
-        fields.add(new HttpHeaderField<RequestHeaders>(RequestHeaders.HOST, "aHost"));
+        final List<HttpHeaderField> fields = new ArrayList<>();
+        fields.add(new HttpHeaderField(RequestHeaders.CONNECTION, "aValue"));
+        fields.add(new HttpHeaderField(RequestHeaders.HOST, "aHost"));
         this.requestHeader.addHttpHeaderFields(fields);
 
         assertEquals(2, this.requestHeader.getFields().size());

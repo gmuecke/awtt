@@ -36,7 +36,7 @@ public class HttpChannelTest {
 
     @Test
     public void testGetProtocol() throws Exception {
-        final Protocol<?, ?, ?> p = this.httpChannel.getProtocol();
+        final Protocol p = this.httpChannel.getProtocol();
         assertTrue(p instanceof HTTP);
     }
 
@@ -112,7 +112,7 @@ public class HttpChannelTest {
         for (final RequestHeaders fieldName : RequestHeaders.values()) {
             final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\n" + fieldName + ": someValue");
             final HttpRequest httpRequest = (HttpRequest) this.httpChannel.parseMessage(in);
-            final HttpHeaderField<RequestHeaders> field = httpRequest.getHeader().getField(fieldName);
+            final HttpHeaderField field = (HttpHeaderField) httpRequest.getHeader().getField(fieldName);
             this.assertHttpRequestField(fieldName, "someValue", field);
         }
 
@@ -161,8 +161,7 @@ public class HttpChannelTest {
         assertTrue(httpRequest.getHeader().getFields().isEmpty());
     }
 
-    private void assertHttpRequestField(final RequestHeaders fieldName, final String value,
-            final HttpHeaderField<?> field) {
+    private void assertHttpRequestField(final RequestHeaders fieldName, final String value, final HttpHeaderField field) {
         assertNotNull("Field " + fieldName + " was parsed to NULL", field);
         assertEquals(fieldName, field.getHeaderFieldDefinition());
         assertEquals(value, field.getValue());

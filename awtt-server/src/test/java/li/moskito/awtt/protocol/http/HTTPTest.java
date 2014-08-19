@@ -16,7 +16,6 @@ import java.util.TimeZone;
 
 import li.moskito.awtt.common.Configurable;
 import li.moskito.awtt.protocol.HeaderField;
-import li.moskito.awtt.protocol.HeaderFieldDefinition;
 import li.moskito.awtt.server.ConnectionHandlerParameters;
 
 import org.apache.commons.configuration.ConfigurationException;
@@ -156,9 +155,6 @@ public class HTTPTest {
         assertEquals(HttpStatusCodes.CONTINUE, response.getHeader().getStatusCode());
     }
 
-    @SuppressWarnings({
-            "unchecked", "rawtypes"
-    })
     @Test
     public void testIsCloseChannelsAfterProcess_http11_close() throws Exception {
         when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
@@ -176,11 +172,9 @@ public class HTTPTest {
         assertFalse(this.http.isCloseChannelsAfterProcess(this.request));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testIsCloseChannelsAfterProcess_http10_keepAlive() throws Exception {
         when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
-        @SuppressWarnings("rawtypes")
         final HttpHeaderField connectionField = mock(HttpHeaderField.class);
         when(connectionField.getValue()).thenReturn("keep-alive");
         when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
@@ -200,7 +194,7 @@ public class HTTPTest {
         final ConnectionHandlerParameters params = mock(ConnectionHandlerParameters.class);
         when(params.getKeepAliveTimeout()).thenReturn(3);
         when(params.getMaxMessagesPerConnection()).thenReturn(257);
-        final List<HeaderField<HeaderFieldDefinition, ?>> headers = this.http.getKeepAliverHeaders(params);
+        final List<HeaderField> headers = this.http.getKeepAliverHeaders(params);
         assertEquals(2, headers.size());
         assertEquals(ResponseHeaders.CONNECTION, headers.get(0).getHeaderFieldDefinition());
         assertEquals("Keep-Alive", headers.get(0).getValue());

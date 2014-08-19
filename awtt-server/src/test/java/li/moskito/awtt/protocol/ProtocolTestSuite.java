@@ -13,7 +13,7 @@ import org.junit.runners.Suite.SuiteClasses;
  */
 @RunWith(Suite.class)
 @SuiteClasses({
-        BinaryBodyTest.class, CustomHeaderFieldTest.class, HeaderFieldTest.class, HeaderTest.class,
+        BinaryBodyTest.class, CustomHeaderFieldDefinitionTest.class, HeaderFieldTest.class, HeaderTest.class,
         MessageChannelTest.class, MessageTest.class, ProtocolExceptionTest.class, ProtocolRegistryTest.class
 })
 public class ProtocolTestSuite {

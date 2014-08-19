@@ -14,7 +14,6 @@ import java.util.List;
 import li.moskito.awtt.common.Configurable;
 import li.moskito.awtt.protocol.Header;
 import li.moskito.awtt.protocol.HeaderField;
-import li.moskito.awtt.protocol.HeaderFieldDefinition;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.Protocol;
@@ -91,7 +90,7 @@ public class MultiportServerTest {
         assertNotNull(port);
         assertEquals(InetAddress.getByName("localhost"), port.getHostname());
         assertEquals(11000, port.getPortNumber());
-        final Protocol<?, ?, ?> protocol = port.getProtocol();
+        final Protocol protocol = port.getProtocol();
         assertNotNull(protocol);
         assertTrue(protocol instanceof TestProtocol);
 
@@ -128,7 +127,7 @@ public class MultiportServerTest {
         public static TestMessageChannel mock;
 
         @Override
-        public Protocol<?, ?, ?> getProtocol() {
+        public Protocol getProtocol() {
             return mock.getProtocol();
         }
 
@@ -144,7 +143,7 @@ public class MultiportServerTest {
 
     }
 
-    public static class TestProtocol implements Protocol<Message, Message, TestMessageChannel> {
+    public static class TestProtocol implements Protocol {
 
         public static TestProtocol mock;
 
@@ -169,8 +168,7 @@ public class MultiportServerTest {
         }
 
         @Override
-        public <D extends HeaderFieldDefinition, T extends HeaderField<D, ?>> List<T> getKeepAliverHeaders(
-                final ConnectionHandlerParameters connectionControl) {
+        public List<HeaderField> getKeepAliverHeaders(final ConnectionHandlerParameters connectionControl) {
             return mock.getKeepAliverHeaders(connectionControl);
         }
 

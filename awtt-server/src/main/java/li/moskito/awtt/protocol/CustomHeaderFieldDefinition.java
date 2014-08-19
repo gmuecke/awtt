@@ -11,7 +11,7 @@ import java.util.WeakHashMap;
  * 
  * @author Gerald
  */
-public class CustomHeaderField implements HeaderFieldDefinition {
+public class CustomHeaderFieldDefinition implements HeaderFieldDefinition {
 
     private final String name;
 
@@ -20,7 +20,7 @@ public class CustomHeaderField implements HeaderFieldDefinition {
      * WeakHashMap is used to allow the disposable of unneeded instances (otherwise the server might be flooded with
      * custom headers until memory is full)
      */
-    private static final Map<String, CustomHeaderField> KNOWN_HEADER_FIELD = new WeakHashMap<>();
+    private static final Map<String, CustomHeaderFieldDefinition> KNOWN_HEADER_FIELD = new WeakHashMap<>();
 
     /**
      * Creates a new custom header field. Because header fields are immutable in their nature as they only define a name
@@ -31,9 +31,9 @@ public class CustomHeaderField implements HeaderFieldDefinition {
      *            the name of the custom header field to be created.
      * @return an instance of a custom header field for the specified name
      */
-    public static CustomHeaderField forName(final String name) {
+    public static CustomHeaderFieldDefinition forName(final String name) {
         if (!KNOWN_HEADER_FIELD.containsKey(name)) {
-            final CustomHeaderField field = new CustomHeaderField(name);
+            final CustomHeaderFieldDefinition field = new CustomHeaderFieldDefinition(name);
             KNOWN_HEADER_FIELD.put(name, field);
 
         }
@@ -44,7 +44,7 @@ public class CustomHeaderField implements HeaderFieldDefinition {
      * @param name
      *            name of the hader field
      */
-    private CustomHeaderField(final String name) {
+    private CustomHeaderFieldDefinition(final String name) {
         super();
         this.name = name;
     }

@@ -147,7 +147,7 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
         final HttpHeader header = request.getHeader();
         if (header.hasField(RequestHeaders.IF_MODIFIED_SINCE)) {
 
-            final String date = header.getField(RequestHeaders.IF_MODIFIED_SINCE).getValue();
+            final String date = (String) header.getField(RequestHeaders.IF_MODIFIED_SINCE).getValue();
             try {
                 final Date ifModifiedDateDate = HTTP.fromHttpDate(date);
                 final Date systemDate = new Date(System.currentTimeMillis());

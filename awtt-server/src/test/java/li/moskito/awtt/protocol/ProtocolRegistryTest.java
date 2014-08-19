@@ -14,7 +14,6 @@ import org.mockito.MockitoAnnotations;
 
 public class ProtocolRegistryTest {
 
-    @SuppressWarnings("rawtypes")
     @Mock
     private Protocol protocol;
 
