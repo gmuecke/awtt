@@ -13,7 +13,7 @@ public class ContentType {
     /**
      * ContentType that should be used when the MIME type can not be determined.
      */
-    public final static ContentType APPLICATION_OCTETSTREAM = new ContentType("application/octet-stream");
+    public static final ContentType APPLICATION_OCTETSTREAM = new ContentType("application/octet-stream");
 
     private final String mimeType;
 

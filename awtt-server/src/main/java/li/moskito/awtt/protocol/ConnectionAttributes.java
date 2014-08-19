@@ -1,12 +1,12 @@
 /**
  * 
  */
-package li.moskito.awtt.server;
+package li.moskito.awtt.protocol;
 
 /**
  * @author Gerald
  */
-public class ConnectionHandlerParameters {
+public class ConnectionAttributes {
 
     /**
      * Value to be used for unlimited parameters (-1)
@@ -33,7 +33,7 @@ public class ConnectionHandlerParameters {
      */
     public static final int DEFAULT_MAX_MESSAGES_PER_CONNECTION = UNLIMITED;
 
-    public static final ConnectionHandlerParameters DEFAULT_CONNECTION_PARAMS = new ConnectionHandlerParameters(DEFAULT_MAX_CONNECTIONS,
+    public static final ConnectionAttributes DEFAULT_CONNECTION_PARAMS = new ConnectionAttributes(DEFAULT_MAX_CONNECTIONS,
             DEFAULT_CONNECTION_TIMEOUT, DEFAULT_MAX_MESSAGES_PER_CONNECTION);
 
     private final int maxConnections;
@@ -50,7 +50,7 @@ public class ConnectionHandlerParameters {
      * @param maxMessagesPerConnection
      *            number of messages processed for a connection before it closes
      */
-    public ConnectionHandlerParameters(final int maxConnections, final int keepAliveTimeout, final int maxMessagesPerConnection) {
+    public ConnectionAttributes(final int maxConnections, final int keepAliveTimeout, final int maxMessagesPerConnection) {
         super();
         this.maxConnections = maxConnections;
         this.keepAliveTimeout = keepAliveTimeout;

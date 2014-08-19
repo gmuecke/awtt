@@ -47,4 +47,11 @@ public class HttpResponseTest {
         assertEquals(strResponse, this.httpResponse.toString());
     }
 
+    @Test
+    public void testToString_WithHeaders() throws Exception {
+        final String strResponse = "HTTP/1.0 202 Accepted\r\nConnection: Keep-Alive\r\n\r\n";
+        this.httpResponse.addField(ResponseHeaders.CONNECTION, "Keep-Alive");
+        assertEquals(strResponse, this.httpResponse.toString());
+    }
+
 }

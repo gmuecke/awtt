@@ -28,20 +28,18 @@ public class HttpProtocolHandlerTest {
         assertTrue(this.handler.accepts(this.request));
     }
 
-    @Test
-    public void testProcess() throws Exception {
-
-        final HttpStatusCodes statusCode = HttpStatusCodes.NOT_IMPLEMENTED;
-        for (final HttpCommands command : HttpCommands.values()) {
-            this.assertStatusCodeOnCommand(statusCode, command);
-        }
-    }
-
     private void assertStatusCodeOnCommand(final HttpStatusCodes statusCode, final HttpCommands command) {
         when(this.request.getCommand()).thenReturn(command);
-        final HttpResponse response = this.handler.onGet(this.request);
+        final HttpResponse response = this.handler.process(this.request);
         assertNotNull(response);
         assertEquals(statusCode, response.getStatusCode());
+    }
+
+    @Test
+    public void testProcess_allCommands() throws Exception {
+        for (final HttpCommands command : HttpCommands.values()) {
+            this.assertStatusCodeOnCommand(HttpStatusCodes.NOT_IMPLEMENTED, command);
+        }
     }
 
     @Test

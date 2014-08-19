@@ -25,4 +25,10 @@ public class CustomHeaderFieldDefinitionTest {
         assertEquals("test", field.getName());
     }
 
+    @Test
+    public void testToString() throws Exception {
+        final CustomHeaderFieldDefinition field = CustomHeaderFieldDefinition.forName("test");
+        assertEquals("test", field.toString());
+    }
+
 }

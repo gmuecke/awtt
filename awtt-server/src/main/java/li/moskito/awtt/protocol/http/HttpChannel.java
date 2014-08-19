@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 
+import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.Header;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.MessageChannel;
@@ -73,7 +74,7 @@ public class HttpChannel extends MessageChannel {
         String fieldLine = this.readLine(charBuffer);
         while (fieldLine != null) {
             if (fieldLine.trim().isEmpty()) {
-                break; // reached end of header
+                break;
             }
             fields.add(this.parseRequestHeaderField(fieldLine));
             fieldLine = this.readLine(charBuffer);
@@ -155,20 +156,15 @@ public class HttpChannel extends MessageChannel {
      * @return the request header field
      */
     private HttpHeaderField parseRequestHeaderField(final String fieldLine) throws HttpProtocolException {
-        final Matcher matcher = HTTP.HTTP_REQUEST_FIELD_PATTERN.matcher(fieldLine);
-
-        final HttpHeaderField field;
-
+        Matcher matcher = HTTP.HTTP_REQUEST_FIELD_PATTERN.matcher(fieldLine);
         if (matcher.matches() && matcher.groupCount() >= 2) {
-
-            field = new HttpHeaderField(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
-
-        } else {
-            throw new HttpProtocolException("Field '" + fieldLine + "' does not conform to http standard");
+            return new HttpHeaderField(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
         }
-
-        return field;
-
+        matcher = HTTP.HTTP_CUSTOM_FIELD_PATTERN.matcher(fieldLine);
+        if (matcher.matches() && matcher.groupCount() >= 2) {
+            return new HttpHeaderField(CustomHeaderFieldDefinition.forName(matcher.group(1)), matcher.group(2));
+        }
+        throw new HttpProtocolException("Field '" + fieldLine + "' does not conform to http standard");
     }
 
     @Override

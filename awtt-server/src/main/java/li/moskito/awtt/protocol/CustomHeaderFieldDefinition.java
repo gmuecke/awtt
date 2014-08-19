@@ -23,6 +23,25 @@ public class CustomHeaderFieldDefinition implements HeaderFieldDefinition {
     private static final Map<String, CustomHeaderFieldDefinition> KNOWN_HEADER_FIELD = new WeakHashMap<>();
 
     /**
+     * @param name
+     *            name of the hader field
+     */
+    private CustomHeaderFieldDefinition(final String name) {
+        super();
+        this.name = name;
+    }
+
+    @Override
+    public String getName() {
+        return this.name;
+    }
+
+    @Override
+    public String toString() {
+        return this.name;
+    }
+
+    /**
      * Creates a new custom header field. Because header fields are immutable in their nature as they only define a name
      * for the field, this method creates a new instance only if the header field has not been created before or wasn't
      * in use any more.
@@ -38,20 +57,6 @@ public class CustomHeaderFieldDefinition implements HeaderFieldDefinition {
 
         }
         return KNOWN_HEADER_FIELD.get(name);
-    }
-
-    /**
-     * @param name
-     *            name of the hader field
-     */
-    private CustomHeaderFieldDefinition(final String name) {
-        super();
-        this.name = name;
-    }
-
-    @Override
-    public String getName() {
-        return this.name;
     }
 
 }

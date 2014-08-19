@@ -13,7 +13,12 @@ public class ResponseHeadersTest {
 
     @Test
     public void testFromString() throws Exception {
-        assertEquals(ResponseHeaders.ACCEPT_RANGES, ResponseHeaders.fromString("Accept-Ranges"));
+        assertEquals(ResponseHeaders.CONNECTION, ResponseHeaders.fromString("Connection"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFromString_noMatch() throws Exception {
+        ResponseHeaders.fromString("Nothing");
     }
 
     @Test

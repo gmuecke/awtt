@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,8 +13,11 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.Protocol;
@@ -43,7 +47,7 @@ public class MessageWorkerTest {
     private SocketChannel clientChannel;
 
     @Mock
-    private ConnectionHandlerParameters connectionParams;
+    private ConnectionAttributes connectionParams;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Port port;
@@ -51,7 +55,7 @@ public class MessageWorkerTest {
     @Mock
     private Message requestMessage;
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Message responseMessage;
 
     private MessageWorker messageWorker;
@@ -90,15 +94,10 @@ public class MessageWorkerTest {
     }
 
     @Test
-    public void testRun() throws Exception {
+    public void testRun_connected() throws Exception {
 
         final Protocol protocol = this.port.getProtocol();
-        final MessageChannel mCh = protocol.openChannel();
-
-        when(mCh.hasMessage()).thenReturn(true, false);
-        when(mCh.readMessage()).thenReturn(this.requestMessage, (Message) null);
-        when(mCh.read(any(ByteBuffer.class))).thenReturn(-1);
-        when(protocol.process(any(Message.class))).thenReturn(this.responseMessage);
+        final MessageChannel mCh = this.prepareChannel(protocol, 1);
 
         assertTrue(this.clientChannel.isConnected());
 
@@ -110,11 +109,157 @@ public class MessageWorkerTest {
 
     }
 
+    @Test
+    public void testRun_connected_keepAlive_closeByProtocol() throws Exception {
+
+        final Protocol protocol = this.port.getProtocol();
+        final MessageChannel mCh = this.prepareChannel(protocol, 2);
+
+        when(this.port.getProtocol().isCloseChannelsAfterProcess(this.requestMessage)).thenReturn(true);
+        when(this.connectionParams.getKeepAliveTimeout()).thenReturn(1000);
+        when(this.connectionParams.getMaxMessagesPerConnection()).thenReturn(100);
+
+        assertTrue(this.clientChannel.isConnected());
+        this.messageWorker.run();
+        assertFalse(this.clientChannel.isConnected());
+
+        verify(protocol, times(1)).process(this.requestMessage);
+        verify(mCh, times(1)).write(this.responseMessage);
+
+    }
+
+    @Test
+    public void testRun_connected_keepAlive_closeByTimeout() throws Exception {
+
+        final Protocol protocol = this.port.getProtocol();
+        final MessageChannel mCh = this.prepareChannel(protocol, 2);
+        when(this.connectionParams.getKeepAliveTimeout()).thenReturn(-1); // so the timeout will always be over
+        when(this.connectionParams.getMaxMessagesPerConnection()).thenReturn(100);
+        when(this.port.getProtocol().isCloseChannelsAfterProcess(this.requestMessage)).thenReturn(false);
+
+        assertTrue(this.clientChannel.isConnected());
+        this.messageWorker.run();
+        assertFalse(this.clientChannel.isConnected());
+
+        verify(protocol, times(1)).process(this.requestMessage);
+        verify(mCh, times(1)).write(this.responseMessage);
+
+    }
+
+    @Test
+    public void testRun_connected_keepAlive_closeByMessageCount() throws Exception {
+
+        final Protocol protocol = this.port.getProtocol();
+        final MessageChannel mCh = this.prepareChannel(protocol, 2);
+        when(this.connectionParams.getKeepAliveTimeout()).thenReturn(100); // so the timeout will always be over
+        when(this.connectionParams.getMaxMessagesPerConnection()).thenReturn(0); // no message
+        when(this.port.getProtocol().isCloseChannelsAfterProcess(this.requestMessage)).thenReturn(false);
+
+        assertTrue(this.clientChannel.isConnected());
+        this.messageWorker.run();
+        assertFalse(this.clientChannel.isConnected());
+
+        verify(protocol, times(1)).process(this.requestMessage);
+        verify(mCh, times(1)).write(this.responseMessage);
+
+    }
+
+    @Test
+    public void testRun_connected_keepAlive() throws Exception {
+
+        final Protocol protocol = this.port.getProtocol();
+        final MessageChannel mCh = this.prepareChannel(protocol, 2);
+        when(this.connectionParams.getKeepAliveTimeout()).thenReturn(100); // so the timeout will always be over
+        when(this.connectionParams.getMaxMessagesPerConnection()).thenReturn(100); // no message
+        when(this.port.getProtocol().isCloseChannelsAfterProcess(this.requestMessage)).thenReturn(false);
+
+        assertTrue(this.clientChannel.isConnected());
+        new Thread(this.messageWorker).start();
+        Thread.sleep(50);
+        this.server.write("message1".getBytes(), "message2".getBytes());
+        Thread.sleep(150);
+        assertFalse(this.clientChannel.isConnected());
+
+        verify(protocol, times(2)).process(this.requestMessage);
+        verify(protocol, times(2)).getKeepAliverHeaders(this.connectionParams);
+        verify(mCh, times(2)).write(this.responseMessage);
+    }
+
+    @Test
+    public void testRun_clientNotConnected() throws Exception {
+
+        final Protocol protocol = this.port.getProtocol();
+        final MessageChannel mCh = this.prepareChannel(protocol, 1);
+
+        this.clientChannel.close();
+        assertFalse(this.clientChannel.isConnected());
+
+        this.messageWorker.run();
+
+        assertFalse(this.clientChannel.isConnected());
+        verify(protocol, times(0)).process(this.requestMessage);
+        verify(mCh, times(0)).write(this.responseMessage);
+
+    }
+
+    @Test
+    public void testRun_noMessage() throws Exception {
+
+        final Protocol protocol = this.port.getProtocol();
+        final MessageChannel mCh = protocol.openChannel();
+
+        // the message channel never returns a message and therefore no invocation of process and write (see below)
+        when(mCh.hasMessage()).thenReturn(false);
+
+        assertTrue(this.clientChannel.isConnected());
+
+        // start the message worker and wait till its started (50ms should be enough)
+        new Thread(this.messageWorker).start();
+        Thread.sleep(50);
+        // write a message via server to the client channel of the message worker, the server will shutdown the
+        // output and therefore send an -1/EOF
+        this.server.write("message".getBytes());
+        Thread.sleep(50);
+        assertFalse(this.clientChannel.isConnected());
+
+        verify(protocol, times(0)).process(this.requestMessage);
+        verify(mCh, times(0)).write(this.responseMessage);
+
+    }
+
+    /**
+     * Prepares the channel of the protocol to return exactly 1 message.
+     * 
+     * @param protocol
+     * @param numMessages
+     *            the number of messages that should be received by the channel. Every message will be the same request
+     * @return
+     * @throws IOException
+     */
+    private MessageChannel prepareChannel(final Protocol protocol, final int numMessages) throws IOException {
+        final MessageChannel mCh = protocol.openChannel();
+        final Message[] requests = new Message[numMessages];
+        final Boolean[] hasMessages = new Boolean[numMessages];
+        for (int i = 0; i < numMessages - 1; i++) {
+            hasMessages[i] = Boolean.TRUE;
+            requests[0] = this.requestMessage;
+        }
+        hasMessages[numMessages - 1] = Boolean.FALSE;
+        requests[numMessages - 1] = null;
+
+        when(mCh.hasMessage()).thenReturn(true, hasMessages);
+        when(mCh.readMessage()).thenReturn(this.requestMessage, requests);
+        when(mCh.read(any(ByteBuffer.class))).thenReturn(-1);
+        when(protocol.process(any(Message.class))).thenReturn(this.responseMessage);
+        return mCh;
+    }
+
     public static class TestServer extends Thread {
 
         private final AtomicBoolean running = new AtomicBoolean(true);
         private Exception startupException = null;
         private ServerSocketChannel serverChannel;
+        private final Queue<byte[]> data = new LinkedList<>();
 
         @Override
         public void run() {
@@ -125,9 +270,16 @@ public class MessageWorkerTest {
                 while (this.running.get()) {
                     final SocketChannel clientConnection = serverChannel.accept();
                     LOG.info("connected from {}", clientConnection.getRemoteAddress());
-                    while (clientConnection.isConnected()) {
+                    boolean dataSend = false;
+                    while (clientConnection.isConnected() && !dataSend) {
+                        while (!this.data.isEmpty()) {
+                            clientConnection.write(ByteBuffer.wrap(this.data.poll()));
+                            Thread.sleep(10);
+                            dataSend = true;
+                        }
                         Thread.sleep(10);
                     }
+                    clientConnection.shutdownOutput();
                     LOG.info("Client Connection closed");
                 }
                 LOG.info("Shutdown request received");
@@ -135,6 +287,12 @@ public class MessageWorkerTest {
                 this.startupException = e;
             } finally {
                 LOG.info("Test Server socket closed");
+            }
+        }
+
+        public void write(final byte[]... data) {
+            for (final byte[] d : data) {
+                this.data.add(d);
             }
         }
 

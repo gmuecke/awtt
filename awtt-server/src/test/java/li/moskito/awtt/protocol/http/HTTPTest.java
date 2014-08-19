@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.TimeZone;
 
 import li.moskito.awtt.common.Configurable;
+import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.HeaderField;
-import li.moskito.awtt.server.ConnectionHandlerParameters;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -191,7 +191,7 @@ public class HTTPTest {
 
     @Test
     public void testGetKeepAliverHeaders() throws Exception {
-        final ConnectionHandlerParameters params = mock(ConnectionHandlerParameters.class);
+        final ConnectionAttributes params = mock(ConnectionAttributes.class);
         when(params.getKeepAliveTimeout()).thenReturn(3);
         when(params.getMaxMessagesPerConnection()).thenReturn(257);
         final List<HeaderField> headers = this.http.getKeepAliverHeaders(params);

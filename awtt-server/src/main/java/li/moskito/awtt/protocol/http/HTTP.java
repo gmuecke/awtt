@@ -16,12 +16,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
 import li.moskito.awtt.common.Configurable;
+import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolRegistry;
-import li.moskito.awtt.server.ConnectionHandlerParameters;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -47,11 +47,13 @@ public class HTTP implements Protocol, Configurable {
                          Pattern.compile("^("+getCommandRegexGroup()+") (\\S+) ("+getVersionRegexGroup()+")(\\r\\n)?$");
     public static final Pattern HTTP_REQUEST_FIELD_PATTERN = 
                          Pattern.compile("^("+getRequestHeaderFieldRegexGroup()+"):\\s*(.*)(\\r\\n)?$");
+    public static final Pattern HTTP_CUSTOM_FIELD_PATTERN = 
+            Pattern.compile("^([A-Z][a-zA-Z\\-]+):\\s*(.*)(\\r\\n)?$");
     public static final Charset CHARSET = StandardCharsets.ISO_8859_1;
 
     public static final int HTTP_DEFAULT_PORT = 80;
     
-    public final static String HTTP_DATE_FORMAT = "EEE, dd MMM yyy HH:mm:ss zzz";
+    public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyy HH:mm:ss zzz";
 
     // Thread safe date formatter
     private static final ThreadLocal<SimpleDateFormat> HTTP_DATE_FORMATTER = new ThreadLocal<SimpleDateFormat>() {
@@ -86,8 +88,7 @@ public class HTTP implements Protocol, Configurable {
         LOG.debug("Processing Request\n{}", message);
         for (final HttpProtocolHandler handler : this.handlers) {
             if (handler.accepts(message)) {
-                final HttpResponse response = handler.process(message);
-                return response;
+                return handler.process(message);
             }
         }
         return createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
@@ -200,7 +201,7 @@ public class HTTP implements Protocol, Configurable {
     }
 
     @Override
-    public List<HeaderField> getKeepAliverHeaders(final ConnectionHandlerParameters connectionParams) {
+    public List<HeaderField> getKeepAliverHeaders(final ConnectionAttributes connectionParams) {
 
         final List<HeaderField> keepAliveHeader = new ArrayList<>();
         //@formatter:off

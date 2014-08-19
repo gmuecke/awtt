@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import li.moskito.awtt.common.Configurable;
+import li.moskito.awtt.protocol.ConnectionAttributes;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -33,7 +34,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     private Port port;
     private final AtomicBoolean running = new AtomicBoolean(true);
 
-    private ConnectionHandlerParameters connectionControl = ConnectionHandlerParameters.DEFAULT_CONNECTION_PARAMS;
+    private ConnectionAttributes connectionControl = ConnectionAttributes.DEFAULT_CONNECTION_PARAMS;
 
     @Override
     public void run() {
@@ -73,9 +74,9 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
                 // wait for incoming connections
                 final SocketChannel client = serverSocketChannel.accept();
 
-                if (this.connectionControl.getKeepAliveTimeout() != 0) {
-                    client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
-                }
+                LOG.debug("Processing connection from {}", client.getRemoteAddress());
+
+                this.setKeepAlive(client);
 
                 // set to blocking
                 client.configureBlocking(true);
@@ -85,6 +86,21 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
             } catch (final IOException e) {
                 throw new ServerRuntimeException("Error occured", e);
             }
+        }
+    }
+
+    /**
+     * Sets the keep alive socket option to the client if a keep alive timeout has been specified
+     * 
+     * @param client
+     *            the client connection for which the keepalive option should be set
+     * @throws IOException
+     */
+    private void setKeepAlive(final SocketChannel client) throws IOException {
+        if (this.connectionControl.getKeepAliveTimeout() != 0) {
+            client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
+        } else {
+            client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.FALSE);
         }
     }
 
@@ -122,10 +138,10 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     @Override
     public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
         //@formatter:off
-        this.connectionControl = new ConnectionHandlerParameters(
-                config.getInteger("maxConnections", ConnectionHandlerParameters.DEFAULT_MAX_CONNECTIONS), 
-                config.getInteger("keepAlive", ConnectionHandlerParameters.UNLIMITED),
-                config.getInteger("maxMessagesPerConnection", ConnectionHandlerParameters.UNLIMITED));
+        this.connectionControl = new ConnectionAttributes(
+                config.getInteger("maxConnections", ConnectionAttributes.DEFAULT_MAX_CONNECTIONS), 
+                config.getInteger("keepAlive", ConnectionAttributes.UNLIMITED),
+                config.getInteger("maxMessagesPerConnection", ConnectionAttributes.UNLIMITED));
         //@formatter:on
     }
 

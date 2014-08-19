@@ -15,7 +15,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.ParseException;
+import java.util.ArrayDeque;
 import java.util.Date;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -40,6 +42,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * A HTTP Request Handler that serves static files of a directory. If the requested resource is a directory the handler
+ * returns its index file if existing. The handler does not provide directory listings. The handler does only serve GET
+ * requests.
+ * 
  * @author Gerald
  */
 public class StaticFileContentRequestHandler extends HttpProtocolHandler implements Configurable {
@@ -50,16 +56,11 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
     private static final Logger LOG = LoggerFactory.getLogger(StaticFileContentRequestHandler.class);
 
     private Path contentRoot;
+    private String indexFileName;
 
-    private final String indexFileName;
     private final Map<String, ContentType> contentTypes;
 
-    /**
-     * 
-     */
     public StaticFileContentRequestHandler() {
-        // TODO make index file name configurable
-        this.indexFileName = "index.html";
         this.contentTypes = new ConcurrentHashMap<>();
 
     }
@@ -70,6 +71,7 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
         try {
             this.contentRoot = Paths.get(new URI(config.getString("contentRoot")));
             LOG.info("Serving files from content root {}", this.contentRoot);
+            this.indexFileName = config.getString("indexFile", "index.html");
 
             final List<HierarchicalConfiguration> contentTypeConfigs = config.configurationsAt("contentTypes/type");
             for (final HierarchicalConfiguration contentTypeConfig : contentTypeConfigs) {
@@ -83,49 +85,91 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
         }
     }
 
+    /**
+     * Accepts GET requests to an existing file or directory with an index file
+     */
     @Override
     public boolean accepts(final HttpRequest httpRequest) {
-        return httpRequest.getCommand() == HttpCommands.GET;
+        final boolean commandSupported = httpRequest.getCommand() == HttpCommands.GET;
+        final boolean resourceValid = this.isFileResource(httpRequest.getResource());
+        return commandSupported && resourceValid;
+    }
+
+    /**
+     * Checks if the the URI points to a valid and existing file resource. If the resource points to a directory it is
+     * still valid if the directory contains an index file
+     * 
+     * @param resourceId
+     *            the resource to verify
+     * @return <code>true</code> if the resource points to a file or a directory with an index file
+     */
+    private boolean isFileResource(final URI resourceId) {
+        final Path resourcePath = this.resolveResource(resourceId);
+        return resourcePath != null && Files.isRegularFile(resourcePath);
     }
 
     @Override
     protected HttpResponse onGet(final HttpRequest httpRequest) {
         final URI resource = httpRequest.getResource();
         LOG.debug("Requested to read resource {}", resource);
-        final StringTokenizer tok = new StringTokenizer(resource.getPath(), "/");
+        final Path resourcePath = this.resolveResource(resource);
 
-        // TODO sanitze request resource by removing elements that reduce the stack
-        final String[] pathElements = new String[tok.countTokens()];
-        int i = 0;
-        while (tok.hasMoreTokens()) {
-            pathElements[i++] = tok.nextToken();
+        if (resourcePath == null) {
+            return new HttpResponse(HttpStatusCodes.NOT_FOUND);
         }
-        // TODO AWTT-7 sanitize resource path to prevent sandbox escape
-        final Path resourcePath = Paths.get(this.contentRoot.toString(), pathElements);
+        return this.createResponse(httpRequest, resourcePath);
+    }
 
-        try {
-            if (Files.exists(resourcePath)) {
+    /**
+     * Resolves the URI resource to a local files system resource that is identified by its {@link Path}
+     * 
+     * @param resource
+     *            the resource to be resolved
+     * @return the {@link Path} pointing to the local file or directory
+     */
+    private Path resolveResource(final URI resource) {
+        final Path resourcePath = this.normalizeResourcePath(resource);
+        return this.resolveFilesystemResourcePath(resourcePath);
+    }
 
-                final Path fileResourcePath;
-                if (Files.isDirectory(resourcePath)) {
-                    fileResourcePath = resourcePath.resolve(this.indexFileName);
-                    // TODO AWTT-13 add support of listing directory contents if index file does not exist
-                } else {
-                    fileResourcePath = resourcePath;
-                }
-
-                LOG.debug("Resolved path to resource {}", fileResourcePath);
-                if (Files.isRegularFile(fileResourcePath)) {
-
-                    if (this.isModified(httpRequest, fileResourcePath)) {
-                        return this.createFileContentResponse(fileResourcePath);
-                    } else {
-                        return HTTP.createResponse(HttpStatusCodes.NOT_MODIFIED);
-                    }
-
-                }
+    /**
+     * Resolves the given resource path to a file resource path. If the path points to a directory, the configured index
+     * file will be used if a file with the configured index file name exists.
+     * 
+     * @param resourcePath
+     *            the resource path to be resolved
+     * @return the path to an existing resource in the filesystem. The resource is either a concrete file or a
+     *         directory.
+     */
+    private Path resolveFilesystemResourcePath(final Path resourcePath) {
+        Path fileResourcePath = resourcePath;
+        if (Files.isDirectory(resourcePath)) {
+            final Path indexResourcePath = resourcePath.resolve(this.indexFileName);
+            if (Files.exists(indexResourcePath)) {
+                fileResourcePath = indexResourcePath;
             }
+        } else if (!Files.isRegularFile(resourcePath)) {
+            fileResourcePath = null;
+        }
+        return fileResourcePath;
+    }
 
+    /**
+     * Creates a HTTP response for the resolved resource. If the resourcePath points to a concrete file, it will be
+     * returned in the response otherwise a 404 NOT FOUND response will be created
+     * 
+     * @param httpRequest
+     *            the httpRequest containing additional information for the file retrieval (like if-modified-date)
+     * @param resourcePath
+     *            the resource path of the local filesystem resource
+     * @return a HttpResponse to be returned to the client
+     */
+    private HttpResponse createResponse(final HttpRequest httpRequest, final Path resourcePath) {
+        try {
+            LOG.debug("Resolved path to resource {}", resourcePath);
+            if (Files.isRegularFile(resourcePath)) {
+                return this.createFileResponse(httpRequest, resourcePath);
+            }
         } catch (final IOException e) {
             LOG.error("Error reading resource {}", resourcePath, e);
             return new HttpResponse(HttpStatusCodes.INTERNAL_SERVER_ERROR);
@@ -134,32 +178,23 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
     }
 
     /**
-     * Determines if the file is modified according to the If-Modified-Since header
+     * Creates a HTTP Response serving the data from the given fileResourcePath. If the file was not modified according
+     * to the information from the http request header, a 304 Not Modified will be returned, otherwise a 200 OK
      * 
-     * @param request
-     *            the request containing the headers
+     * @param httpRequest
+     *            the http request containing information regarding the constraining modification date
      * @param fileResourcePath
-     *            the fileResource that should be checked regarding modification date
-     * @return <code>true</code> if the file was modified since the date in the request
+     *            the file resource to server
+     * @return the http response to be returned to the client
      * @throws IOException
      */
-    private boolean isModified(final HttpMessage request, final Path fileResourcePath) throws IOException {
-        final HttpHeader header = request.getHeader();
-        if (header.hasField(RequestHeaders.IF_MODIFIED_SINCE)) {
-
-            final String date = (String) header.getField(RequestHeaders.IF_MODIFIED_SINCE).getValue();
-            try {
-                final Date ifModifiedDateDate = HTTP.fromHttpDate(date);
-                final Date systemDate = new Date(System.currentTimeMillis());
-                final Date modifiedDate = this.getLastModifiedDate(fileResourcePath);
-
-                return ifModifiedDateDate.after(systemDate) || ifModifiedDateDate.before(modifiedDate);
-
-            } catch (final ParseException e) {
-                LOG.debug("Could not parse date {}", date, e);
-            }
+    private HttpResponse createFileResponse(final HttpRequest httpRequest, final Path fileResourcePath)
+            throws IOException {
+        if (this.isModified(httpRequest, fileResourcePath)) {
+            return this.createFileContentResponse(fileResourcePath);
+        } else {
+            return HTTP.createResponse(HttpStatusCodes.NOT_MODIFIED);
         }
-        return true;
     }
 
     /**
@@ -185,6 +220,91 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
         }
 
         return httpResponse;
+    }
+
+    /**
+     * Extracts the path value of the URI and normalizes it by dereferencing all relative path elements (. and ..) The
+     * method ensures that the path does not reference a resource that is parent to root.
+     * 
+     * @param resource
+     *            the resource identifier to normalize
+     * @return the normalized Path to a local file system resource
+     */
+    private Path normalizeResourcePath(final URI resource) {
+
+        final Deque<String> pathElements = this.getAbsolutePathElements(resource);
+
+        return Paths.get(this.contentRoot.toString(), pathElements.toArray(new String[pathElements.size()]));
+    }
+
+    /**
+     * Disassembles the path of the resource URI into its elements and returns only those elements that are absolute
+     * elements. Relative elements (. and ..) are dereferenced (every .. removes one parent element up to the root)
+     * 
+     * @param resource
+     *            a resource identifier with a path to a resource
+     * @return a {@link Deque} with the path elements in the same order as in the the {@link URI}
+     */
+    private Deque<String> getAbsolutePathElements(final URI resource) {
+
+        final StringTokenizer tok = new StringTokenizer(resource.getPath(), "/");
+        final Deque<String> pathElements = new ArrayDeque<>();
+
+        while (tok.hasMoreTokens()) {
+            final String pathElement = tok.nextToken();
+            if ("..".equals(pathElement) && !pathElements.isEmpty()) {
+                pathElements.removeLast();
+            } else if (!".".equals(pathElement)) {
+                pathElements.addLast(pathElement);
+            }
+        }
+        return pathElements;
+    }
+
+    /**
+     * Determines if the file is modified according to the If-Modified-Since header
+     * 
+     * @param request
+     *            the request containing the headers
+     * @param fileResourcePath
+     *            the fileResource that should be checked regarding modification date
+     * @return <code>true</code> if the file was modified since the date in the request
+     * @throws IOException
+     */
+    private boolean isModified(final HttpMessage request, final Path fileResourcePath) throws IOException {
+        final HttpHeader header = request.getHeader();
+        if (header.hasField(RequestHeaders.IF_MODIFIED_SINCE)) {
+            final String date = (String) header.getField(RequestHeaders.IF_MODIFIED_SINCE).getValue();
+            return this.isModifiedSince(date, fileResourcePath);
+        }
+        return true;
+    }
+
+    /**
+     * Determines if the specified file resource is modified since the date specified in the date string (in HTTP Date
+     * format).
+     * 
+     * @param httpDate
+     *            the date to check the actual and the system date against
+     * @param fileResourcePath
+     *            the filesystem that should be checked against the date
+     * @return <code>true</code> if the httpDate is after the current system date (in the future), or if it is before
+     *         the actual modified date of the file (the file has been modified since that date) or if the date could
+     *         not be parsed. In all other cases, the method returns <code>false</code>
+     * @throws IOException
+     */
+    private boolean isModifiedSince(final String httpDate, final Path fileResourcePath) throws IOException {
+        try {
+            final Date ifModifiedDateDate = HTTP.fromHttpDate(httpDate);
+            final Date systemDate = new Date(System.currentTimeMillis());
+            final Date modifiedDate = this.getLastModifiedDate(fileResourcePath);
+
+            return ifModifiedDateDate.after(systemDate) || ifModifiedDateDate.before(modifiedDate);
+
+        } catch (final ParseException e) {
+            LOG.debug("Could not parse date {}", httpDate, e);
+        }
+        return true;
     }
 
     /**

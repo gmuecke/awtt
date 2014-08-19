@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.Protocol;
@@ -28,7 +29,7 @@ public class MessageWorker implements Runnable {
     private final SocketChannel clientChannel;
 
     private final Port port;
-    private final ConnectionHandlerParameters connectionParams;
+    private final ConnectionAttributes connectionParams;
 
     private final MessageChannel serverChannel;
 
@@ -42,7 +43,7 @@ public class MessageWorker implements Runnable {
      * @param connectionParams
      */
     public MessageWorker(final SocketChannel channel, final Port port,
-            final ConnectionHandlerParameters connectionParams) {
+            final ConnectionAttributes connectionParams) {
         this.clientChannel = channel;
         this.port = port;
         this.serverChannel = port.getProtocol().openChannel();
@@ -53,9 +54,9 @@ public class MessageWorker implements Runnable {
      * Returns the connection control element providing connection specific parameters that may influence the behavior
      * of the message processing
      * 
-     * @return the {@link ConnectionHandlerParameters} bean
+     * @return the {@link ConnectionAttributes} bean
      */
-    public ConnectionHandlerParameters getConnectionControl() {
+    public ConnectionAttributes getConnectionControl() {
         return this.connectionParams;
     }
 
@@ -65,8 +66,6 @@ public class MessageWorker implements Runnable {
         this.initializeProcessing();
 
         try {
-            LOG.debug("Processing connection from {}", this.clientChannel.getRemoteAddress());
-
             while (this.clientChannel.isConnected() && this.receiveMessage()) {
 
                 this.updateMessageCount();
@@ -157,7 +156,8 @@ public class MessageWorker implements Runnable {
 
     private boolean receiveMessage() throws IOException {
 
-        final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024); // TODO read buffer size from port config
+        // TODO read buffer size from port config
+        final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
 
         while (!this.serverChannel.hasMessage()) {
 
@@ -178,7 +178,7 @@ public class MessageWorker implements Runnable {
      * Sets or Resets the message count before the connection terminates
      */
     private void updateMessageCount() {
-        if (this.connectionParams.getMaxMessagesPerConnection() != ConnectionHandlerParameters.UNLIMITED) {
+        if (this.connectionParams.getMaxMessagesPerConnection() != ConnectionAttributes.UNLIMITED) {
             if (this.numMessages > 0) {
                 this.numMessages--;
             } else {

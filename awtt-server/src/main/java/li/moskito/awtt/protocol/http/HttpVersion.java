@@ -16,7 +16,7 @@ public enum HttpVersion implements ProtocolVersion {
     HTTP_1_0("1.0"),
     HTTP_0_9("0.9"), ;
 
-    final static String PROTOCOL_PREFIX = "HTTP/";
+    static final String PROTOCOL_PREFIX = "HTTP/";
 
     private String version;
 

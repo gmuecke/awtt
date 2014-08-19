@@ -44,16 +44,16 @@ public class HttpProtocolException extends ProtocolException {
         this.originalInput = null;
     }
 
-    public String getOriginalInput() {
-        return this.originalInput;
-    }
-
     /**
      * @param cause
      */
     public HttpProtocolException(final Throwable cause) {
         super(cause);
         this.originalInput = null;
+    }
+
+    public String getOriginalInput() {
+        return this.originalInput;
     }
 
 }
