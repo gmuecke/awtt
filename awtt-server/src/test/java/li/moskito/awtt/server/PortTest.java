@@ -20,7 +20,7 @@ public class PortTest {
     private InetAddress hostname;
 
     @Mock
-    private Protocol<?, ?, ?> protocol;
+    private Protocol protocol;
 
     private final int portNumber = 100;
 

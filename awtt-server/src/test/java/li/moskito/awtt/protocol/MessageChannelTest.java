@@ -28,7 +28,7 @@ public class MessageChannelTest {
         private static MessageChannel mock;
 
         @Override
-        public Protocol<?, ?, ?> getProtocol() {
+        public Protocol getProtocol() {
             return mock.getProtocol();
         }
 

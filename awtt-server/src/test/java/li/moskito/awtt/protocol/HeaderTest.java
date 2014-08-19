@@ -25,9 +25,9 @@ public class HeaderTest {
     private HeaderFieldDefinition fieldDef2;
 
     @Mock
-    private HeaderField<HeaderFieldDefinition, ?> field1;
+    private HeaderField field1;
     @Mock
-    private HeaderField<HeaderFieldDefinition, ?> field2;
+    private HeaderField field2;
 
     @Mock
     private ProtocolVersion version;
@@ -69,7 +69,7 @@ public class HeaderTest {
     @Test
     public void testAddFields() throws Exception {
 
-        final List<HeaderField<HeaderFieldDefinition, ?>> newFields = new ArrayList<>();
+        final List<HeaderField> newFields = new ArrayList<>();
         newFields.add(this.field1);
         newFields.add(this.field2);
         newFields.add(this.field2); // test for removing of duplicates

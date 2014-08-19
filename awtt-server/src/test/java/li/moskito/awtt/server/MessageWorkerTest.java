@@ -89,9 +89,6 @@ public class MessageWorkerTest {
         assertEquals(this.connectionParams, this.messageWorker.getConnectionControl());
     }
 
-    @SuppressWarnings({
-            "unchecked", "rawtypes"
-    })
     @Test
     public void testRun() throws Exception {
 

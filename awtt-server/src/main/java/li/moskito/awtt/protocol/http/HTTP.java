@@ -16,9 +16,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
 import li.moskito.awtt.common.Configurable;
-import li.moskito.awtt.protocol.CustomHeaderField;
+import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
-import li.moskito.awtt.protocol.HeaderFieldDefinition;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolRegistry;
@@ -34,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Gerald
  */
-public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, Configurable {
+public class HTTP implements Protocol, Configurable {
 
     /**
      * SLF4J Logger for this class
@@ -79,6 +78,10 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
     }
 
     @Override
+    public Message process(final Message message) {
+        return this.process((HttpRequest) message);
+    }
+
     public HttpResponse process(final HttpRequest message) {
         LOG.debug("Processing Request\n{}", message);
         for (final HttpProtocolHandler handler : this.handlers) {
@@ -182,7 +185,7 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
         final String connectionField;
         final HttpHeader header = (HttpHeader) request.getHeader();
         if (header.hasField(RequestHeaders.CONNECTION)) {
-            connectionField = header.getField(RequestHeaders.CONNECTION).getValue();
+            connectionField = (String) header.getField(RequestHeaders.CONNECTION).getValue();
         } else {
             connectionField = null;
         }
@@ -196,15 +199,13 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <D extends HeaderFieldDefinition, T extends HeaderField<D, ?>> List<T> getKeepAliverHeaders(
-            final ConnectionHandlerParameters connectionParams) {
+    public List<HeaderField> getKeepAliverHeaders(final ConnectionHandlerParameters connectionParams) {
 
-        final List<T> keepAliveHeader = new ArrayList<>();
+        final List<HeaderField> keepAliveHeader = new ArrayList<>();
         //@formatter:off
-        keepAliveHeader.add((T) new HttpHeaderField<ResponseHeaders>(ResponseHeaders.CONNECTION, "Keep-Alive"));
-        keepAliveHeader.add((T) new HttpHeaderField<CustomHeaderField>(CustomHeaderField.forName("Keep-Alive"), 
+        keepAliveHeader.add( new HttpHeaderField (ResponseHeaders.CONNECTION, "Keep-Alive"));
+        keepAliveHeader.add( new HttpHeaderField(CustomHeaderFieldDefinition.forName("Keep-Alive"), 
                 String.format("timeout=%s, max=%s", 
                         connectionParams.getKeepAliveTimeout(),
                         connectionParams.getMaxMessagesPerConnection())));
