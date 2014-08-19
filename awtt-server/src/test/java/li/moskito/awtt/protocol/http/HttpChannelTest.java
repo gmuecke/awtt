@@ -12,6 +12,9 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 
+import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
+import li.moskito.awtt.protocol.HeaderField;
+import li.moskito.awtt.protocol.HeaderFieldDefinition;
 import li.moskito.awtt.protocol.Protocol;
 
 import org.junit.Before;
@@ -112,10 +115,26 @@ public class HttpChannelTest {
         for (final RequestHeaders fieldName : RequestHeaders.values()) {
             final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\n" + fieldName + ": someValue");
             final HttpRequest httpRequest = (HttpRequest) this.httpChannel.parseMessage(in);
-            final HttpHeaderField field = (HttpHeaderField) httpRequest.getHeader().getField(fieldName);
-            this.assertHttpRequestField(fieldName, "someValue", field);
+            final HeaderField field = httpRequest.getHeader().getField(fieldName);
+            this.assertHeaderField(fieldName, "someValue", field);
         }
+    }
 
+    @Test
+    public void testParseMessageByteBuffer_unknownHeaderField() throws Exception {
+        final HeaderFieldDefinition fieldName = CustomHeaderFieldDefinition.forName("Cookie");
+
+        final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\n" + fieldName + ": someValue");
+        final HttpRequest httpRequest = (HttpRequest) this.httpChannel.parseMessage(in);
+        final HeaderField field = httpRequest.getHeader().getField(fieldName);
+        this.assertHeaderField(fieldName, "someValue", field);
+
+    }
+
+    @Test(expected = HttpProtocolException.class)
+    public void testParseMessageByteBuffer_invalidHeader() throws Exception {
+        final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\nCookie noSeparator");
+        this.httpChannel.parseMessage(in);
     }
 
     @Test
@@ -161,7 +180,7 @@ public class HttpChannelTest {
         assertTrue(httpRequest.getHeader().getFields().isEmpty());
     }
 
-    private void assertHttpRequestField(final RequestHeaders fieldName, final String value, final HttpHeaderField field) {
+    private void assertHeaderField(final HeaderFieldDefinition fieldName, final String value, final HeaderField field) {
         assertNotNull("Field " + fieldName + " was parsed to NULL", field);
         assertEquals(fieldName, field.getHeaderFieldDefinition());
         assertEquals(value, field.getValue());

@@ -47,6 +47,8 @@ public class HTTP implements Protocol, Configurable {
                          Pattern.compile("^("+getCommandRegexGroup()+") (\\S+) ("+getVersionRegexGroup()+")(\\r\\n)?$");
     public static final Pattern HTTP_REQUEST_FIELD_PATTERN = 
                          Pattern.compile("^("+getRequestHeaderFieldRegexGroup()+"):\\s*(.*)(\\r\\n)?$");
+    public static final Pattern HTTP_CUSTOM_FIELD_PATTERN = 
+            Pattern.compile("^([A-Z][a-zA-Z\\-]+):\\s*(.*)(\\r\\n)?$");
     public static final Charset CHARSET = StandardCharsets.ISO_8859_1;
 
     public static final int HTTP_DEFAULT_PORT = 80;

@@ -36,6 +36,11 @@ public class CustomHeaderFieldDefinition implements HeaderFieldDefinition {
         return this.name;
     }
 
+    @Override
+    public String toString() {
+        return this.name;
+    }
+
     /**
      * Creates a new custom header field. Because header fields are immutable in their nature as they only define a name
      * for the field, this method creates a new instance only if the header field has not been created before or wasn't
@@ -49,7 +54,7 @@ public class CustomHeaderFieldDefinition implements HeaderFieldDefinition {
         if (!KNOWN_HEADER_FIELD.containsKey(name)) {
             final CustomHeaderFieldDefinition field = new CustomHeaderFieldDefinition(name);
             KNOWN_HEADER_FIELD.put(name, field);
-    
+
         }
         return KNOWN_HEADER_FIELD.get(name);
     }
