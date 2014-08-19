@@ -73,7 +73,7 @@ public class HttpChannel extends MessageChannel {
         String fieldLine = this.readLine(charBuffer);
         while (fieldLine != null) {
             if (fieldLine.trim().isEmpty()) {
-                break; // reached end of header
+                break;
             }
             fields.add(this.parseRequestHeaderField(fieldLine));
             fieldLine = this.readLine(charBuffer);

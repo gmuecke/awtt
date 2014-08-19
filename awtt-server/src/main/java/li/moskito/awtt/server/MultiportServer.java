@@ -168,9 +168,7 @@ public class MultiportServer implements Server {
         final int portNumber = portConfig.getInt("@port", -1);
         final String protocolName = portConfig.getString("@protocol");
 
-        final Port port = this.createPort(protocolName, hostname, portNumber);
-
-        return port;
+        return this.createPort(protocolName, hostname, portNumber);
     }
 
     /**

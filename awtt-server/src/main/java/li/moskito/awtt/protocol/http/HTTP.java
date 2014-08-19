@@ -51,7 +51,7 @@ public class HTTP implements Protocol, Configurable {
 
     public static final int HTTP_DEFAULT_PORT = 80;
     
-    public final static String HTTP_DATE_FORMAT = "EEE, dd MMM yyy HH:mm:ss zzz";
+    public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyy HH:mm:ss zzz";
 
     // Thread safe date formatter
     private static final ThreadLocal<SimpleDateFormat> HTTP_DATE_FORMATTER = new ThreadLocal<SimpleDateFormat>() {
@@ -86,8 +86,7 @@ public class HTTP implements Protocol, Configurable {
         LOG.debug("Processing Request\n{}", message);
         for (final HttpProtocolHandler handler : this.handlers) {
             if (handler.accepts(message)) {
-                final HttpResponse response = handler.process(message);
-                return response;
+                return handler.process(message);
             }
         }
         return createResponse(HttpStatusCodes.NOT_IMPLEMENTED);

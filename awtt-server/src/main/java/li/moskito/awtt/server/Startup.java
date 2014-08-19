@@ -30,8 +30,7 @@ public final class Startup {
 
     private static XMLConfiguration getDefaultConfiguration() throws ConfigurationException {
         final URL url = Startup.class.getClassLoader().getResource("awttServerConfig.xml");
-        final XMLConfiguration xconf = loadConfiguration(url);
-        return xconf;
+        return loadConfiguration(url);
     }
 
     private static XMLConfiguration loadConfiguration(final URL url) throws ConfigurationException {

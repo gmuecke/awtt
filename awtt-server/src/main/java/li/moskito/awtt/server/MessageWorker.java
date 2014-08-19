@@ -155,7 +155,8 @@ public class MessageWorker implements Runnable {
 
     private boolean receiveMessage() throws IOException {
 
-        final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024); // TODO read buffer size from port config
+        // TODO read buffer size from port config
+        final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
 
         while (!this.serverChannel.hasMessage()) {
 

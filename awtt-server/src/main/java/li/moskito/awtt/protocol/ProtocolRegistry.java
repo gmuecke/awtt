@@ -19,29 +19,20 @@ public final class ProtocolRegistry {
      * Holder idiom
      */
     private static class Holder {
+        private static final ProtocolRegistry INSTANCE = new ProtocolRegistry();
         private Holder() {
         }
-        private static final ProtocolRegistry INSTANCE = new ProtocolRegistry();
     }
+
+    private final Map<String, Protocol> protocols;
 
     /**
      * Singleton constructor
      */
     private ProtocolRegistry() {
         this.protocols = new ConcurrentHashMap<>();
-
+    
     }
-
-    /**
-     * Liefert eine Singleton Instanz.
-     * 
-     * @return
-     */
-    public static ProtocolRegistry getInstance() {
-        return Holder.INSTANCE;
-    }
-
-    private final Map<String, Protocol> protocols;
 
     /**
      * Checks if a specific protocol is available
@@ -78,6 +69,15 @@ public final class ProtocolRegistry {
             throw new IllegalStateException("Protocol '" + name + "' already registered");
         }
         this.protocols.put(name, protocol);
+    }
+
+    /**
+     * Liefert eine Singleton Instanz.
+     * 
+     * @return
+     */
+    public static ProtocolRegistry getInstance() {
+        return Holder.INSTANCE;
     }
 
 }

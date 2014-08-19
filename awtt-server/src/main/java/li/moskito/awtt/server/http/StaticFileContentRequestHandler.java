@@ -107,22 +107,11 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
             if (Files.exists(resourcePath)) {
 
                 final Path fileResourcePath;
-                if (Files.isDirectory(resourcePath)) {
-                    fileResourcePath = resourcePath.resolve(this.indexFileName);
-                    // TODO AWTT-13 add support of listing directory contents if index file does not exist
-                } else {
-                    fileResourcePath = resourcePath;
-                }
+                fileResourcePath = this.resolveFileResourcePath(resourcePath);
 
                 LOG.debug("Resolved path to resource {}", fileResourcePath);
                 if (Files.isRegularFile(fileResourcePath)) {
-
-                    if (this.isModified(httpRequest, fileResourcePath)) {
-                        return this.createFileContentResponse(fileResourcePath);
-                    } else {
-                        return HTTP.createResponse(HttpStatusCodes.NOT_MODIFIED);
-                    }
-
+                    return this.createResponse(httpRequest, fileResourcePath);
                 }
             }
 
@@ -131,6 +120,44 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
             return new HttpResponse(HttpStatusCodes.INTERNAL_SERVER_ERROR);
         }
         return new HttpResponse(HttpStatusCodes.NOT_FOUND);
+    }
+
+    /**
+     * Creates a HTTP Response serving the data from the given fileResourcePath. If the file was not modified according
+     * to the information from the http request header, a 304 Not Modified will be returned, otherwise a 200 OK
+     * 
+     * @param httpRequest
+     *            the http request containing information regarding the constraining modification date
+     * @param fileResourcePath
+     *            the file resource to server
+     * @return the http response to be returned to the client
+     * @throws IOException
+     */
+    private HttpResponse createResponse(final HttpRequest httpRequest, final Path fileResourcePath) throws IOException {
+        if (this.isModified(httpRequest, fileResourcePath)) {
+            return this.createFileContentResponse(fileResourcePath);
+        } else {
+            return HTTP.createResponse(HttpStatusCodes.NOT_MODIFIED);
+        }
+    }
+
+    /**
+     * Resolves the given resource path to a file resource path. If the path points to a directory, the configured index
+     * file will be used.
+     * 
+     * @param resourcePath
+     *            the resource path to be resolved
+     * @return the fileResourcePath that can be read and transmitted to the client
+     */
+    private Path resolveFileResourcePath(final Path resourcePath) {
+        final Path fileResourcePath;
+        if (Files.isDirectory(resourcePath)) {
+            fileResourcePath = resourcePath.resolve(this.indexFileName);
+            // TODO AWTT-13 add support of listing directory contents if index file does not exist
+        } else {
+            fileResourcePath = resourcePath;
+        }
+        return fileResourcePath;
     }
 
     /**
