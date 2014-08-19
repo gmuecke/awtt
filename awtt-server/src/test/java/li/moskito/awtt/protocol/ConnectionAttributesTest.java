@@ -1,17 +1,18 @@
-package li.moskito.awtt.server;
+package li.moskito.awtt.protocol;
 
 import static org.junit.Assert.assertEquals;
+import li.moskito.awtt.protocol.ConnectionAttributes;
 
 import org.junit.Before;
 import org.junit.Test;
 
-public class ConnectionHandlerParametersTest {
+public class ConnectionAttributesTest {
 
-    private ConnectionHandlerParameters subject;
+    private ConnectionAttributes subject;
 
     @Before
     public void setUp() throws Exception {
-        this.subject = new ConnectionHandlerParameters(5, 10, 20);
+        this.subject = new ConnectionAttributes(5, 10, 20);
     }
 
     @Test

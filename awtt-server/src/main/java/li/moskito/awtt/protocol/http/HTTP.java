@@ -16,12 +16,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
 import li.moskito.awtt.common.Configurable;
+import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolRegistry;
-import li.moskito.awtt.server.ConnectionHandlerParameters;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -201,7 +201,7 @@ public class HTTP implements Protocol, Configurable {
     }
 
     @Override
-    public List<HeaderField> getKeepAliverHeaders(final ConnectionHandlerParameters connectionParams) {
+    public List<HeaderField> getKeepAliverHeaders(final ConnectionAttributes connectionParams) {
 
         final List<HeaderField> keepAliveHeader = new ArrayList<>();
         //@formatter:off

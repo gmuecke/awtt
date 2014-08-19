@@ -5,7 +5,6 @@ package li.moskito.awtt.protocol;
 
 import java.util.List;
 
-import li.moskito.awtt.server.ConnectionHandlerParameters;
 
 /**
  * A protocol defines a set of Messages to be exchanged between two communication partners and the semantic how those
@@ -56,5 +55,5 @@ public interface Protocol {
      * @return a list of header fields that can be added to a response in order to inform the receiver on how to handle
      *         the connection
      */
-    List<HeaderField> getKeepAliverHeaders(ConnectionHandlerParameters connectionControl);
+    List<HeaderField> getKeepAliverHeaders(ConnectionAttributes connectionControl);
 }

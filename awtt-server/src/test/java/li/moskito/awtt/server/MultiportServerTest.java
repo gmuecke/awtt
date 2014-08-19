@@ -12,6 +12,7 @@ import java.nio.CharBuffer;
 import java.util.List;
 
 import li.moskito.awtt.common.Configurable;
+import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.Header;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
@@ -168,7 +169,7 @@ public class MultiportServerTest {
         }
 
         @Override
-        public List<HeaderField> getKeepAliverHeaders(final ConnectionHandlerParameters connectionControl) {
+        public List<HeaderField> getKeepAliverHeaders(final ConnectionAttributes connectionControl) {
             return mock.getKeepAliverHeaders(connectionControl);
         }
 

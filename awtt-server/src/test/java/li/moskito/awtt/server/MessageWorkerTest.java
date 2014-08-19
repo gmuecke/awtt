@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.Protocol;
@@ -46,7 +47,7 @@ public class MessageWorkerTest {
     private SocketChannel clientChannel;
 
     @Mock
-    private ConnectionHandlerParameters connectionParams;
+    private ConnectionAttributes connectionParams;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Port port;
