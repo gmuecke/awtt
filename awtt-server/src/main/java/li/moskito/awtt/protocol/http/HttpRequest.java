@@ -43,7 +43,7 @@ public class HttpRequest extends HttpMessage {
 
     @Override
     public String toString() {
-        final StringBuffer buf = new StringBuffer(128);
+        final StringBuilder buf = new StringBuilder(128);
         buf.append(this.getCommand()).append(' ').append(this.getResource()).append(' ')
                 .append(this.getHeader().getVersion()).append(HTTP.CRLF);
 

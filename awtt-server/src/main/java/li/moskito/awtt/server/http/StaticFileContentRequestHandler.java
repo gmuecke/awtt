@@ -79,7 +79,7 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
             }
 
         } catch (final URISyntaxException e) {
-            throw new ConfigurationException("ContentRoot not valid");
+            throw new ConfigurationException("ContentRoot not valid", e);
         }
     }
 

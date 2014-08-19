@@ -14,7 +14,10 @@ import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
  * 
  * @author Gerald
  */
-public class Startup {
+public final class Startup {
+
+    private Startup() {
+    }
 
     public static void main(final String[] args) throws ConfigurationException {
 

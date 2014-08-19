@@ -218,7 +218,7 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
      * @return
      */
     private static final String getCommandRegexGroup() {
-        final StringBuffer buf = new StringBuffer(50);
+        final StringBuilder buf = new StringBuilder(50);
 
         for (final HttpCommands command : HttpCommands.values()) {
             if (buf.length() > 0) {
@@ -236,7 +236,7 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
      * @return
      */
     private static final String getVersionRegexGroup() {
-        final StringBuffer buf = new StringBuffer(50);
+        final StringBuilder buf = new StringBuilder(50);
 
         buf.append(HttpVersion.PROTOCOL_PREFIX.replaceAll("\\/", "\\\\/"));
         buf.append('(');
@@ -259,7 +259,7 @@ public class HTTP implements Protocol<HttpRequest, HttpResponse, HttpChannel>, C
      * @return
      */
     private static final String getRequestHeaderFieldRegexGroup() {
-        final StringBuffer buf = new StringBuffer(128);
+        final StringBuilder buf = new StringBuilder(128);
 
         for (final RequestHeaders command : RequestHeaders.values()) {
             if (buf.length() > 0) {

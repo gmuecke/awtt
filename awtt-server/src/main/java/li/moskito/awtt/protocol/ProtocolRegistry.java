@@ -19,6 +19,8 @@ public final class ProtocolRegistry {
      * Holder idiom
      */
     private static class Holder {
+        private Holder() {
+        }
         private static final ProtocolRegistry INSTANCE = new ProtocolRegistry();
     }
 

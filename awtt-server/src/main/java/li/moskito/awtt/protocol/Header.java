@@ -3,6 +3,7 @@
  */
 package li.moskito.awtt.protocol;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,7 +32,10 @@ public abstract class Header {
      * @author Gerald
      */
     private static final class HeaderFieldComparator implements
-            Comparator<HeaderField<? extends HeaderFieldDefinition, ?>> {
+            Comparator<HeaderField<? extends HeaderFieldDefinition, ?>>, Serializable {
+
+        private static final long serialVersionUID = 2432933502724826836L;
+
         @Override
         public int compare(final HeaderField<? extends HeaderFieldDefinition, ?> paramT1,
                 final HeaderField<? extends HeaderFieldDefinition, ?> paramT2) {

@@ -76,7 +76,7 @@ public abstract class MessageChannel implements ByteChannel {
      * 
      * @author Gerald
      */
-    protected class OnMessageReadCallback {
+    protected static class OnMessageReadCallback {
 
         private final MessageChannel channel;
 

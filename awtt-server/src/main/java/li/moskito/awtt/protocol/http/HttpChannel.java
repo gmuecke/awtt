@@ -28,7 +28,7 @@ public class HttpChannel extends MessageChannel {
     /**
      * SLF4J Logger for this class
      */
-    public static final Logger LOG = LoggerFactory.getLogger(HttpChannel.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HttpChannel.class);
 
     private final HTTP protocol;
 
@@ -68,13 +68,16 @@ public class HttpChannel extends MessageChannel {
         final HttpRequest result = this.parseRequestLine(requestLine);
 
         final List<HttpHeaderField<?>> fields = new ArrayList<>();
-        for (String fieldLine = this.readLine(charBuffer); fieldLine != null;) {
+
+        String fieldLine = this.readLine(charBuffer);
+        while (fieldLine != null) {
             if (fieldLine.trim().isEmpty()) {
                 break; // reached end of header
             }
             fields.add(this.parseRequestHeaderField(fieldLine));
             fieldLine = this.readLine(charBuffer);
         }
+
         result.getHeader().addHttpHeaderFields(fields);
         return result;
     }
@@ -89,7 +92,7 @@ public class HttpChannel extends MessageChannel {
      * @throws HttpProtocolException
      */
     private String readLine(final CharBuffer charBuffer) throws HttpProtocolException {
-        final StringBuffer buf = new StringBuffer(8);
+        final StringBuilder buf = new StringBuilder(8);
 
         boolean eol = false;
         while (charBuffer.hasRemaining() && !eol) {
@@ -180,7 +183,7 @@ public class HttpChannel extends MessageChannel {
      * @return a CharBuffer containing the response in character representation
      */
     private CharBuffer serializeHeader(final HttpHeader header) {
-        final StringBuffer buf = new StringBuffer(128);
+        final StringBuilder buf = new StringBuilder(128);
         buf.append(header.getVersion()).append(' ').append(header.getStatusCode()).append(HTTP.CRLF);
         for (final HttpHeaderField<?> field : header.getFields()) {
             buf.append(field).append(HTTP.CRLF);
