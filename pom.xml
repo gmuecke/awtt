@@ -87,7 +87,7 @@
 			    <configuration>
 	    	        <forkCount>1</forkCount>
 	    	        <reuseForks>false</reuseForks>
-	    	        <argLine>${surefireArgLine} -Xms128M -Xmx384m -XX:MaxPermSize=192m</argLine>
+	    	        <argLine>-Xms128M -Xmx512m -XX:MaxPermSize=256m ${surefireArgLine}</argLine>
 			    </configuration>
 			</plugin>
 			<plugin>
