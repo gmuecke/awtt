@@ -65,8 +65,6 @@ public class MessageWorker implements Runnable {
         this.initializeProcessing();
 
         try {
-            LOG.debug("Processing connection from {}", this.clientChannel.getRemoteAddress());
-
             while (this.clientChannel.isConnected() && this.receiveMessage()) {
 
                 this.updateMessageCount();

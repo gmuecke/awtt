@@ -13,7 +13,12 @@ public class RequestHeadersTest {
 
     @Test
     public void testFromString() throws Exception {
-        assertEquals(RequestHeaders.ACCEPT, RequestHeaders.fromString("Accept"));
+        assertEquals(RequestHeaders.CONNECTION, RequestHeaders.fromString("Connection"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFromString_noMatch() throws Exception {
+        RequestHeaders.fromString("Nothing");
     }
 
     @Test

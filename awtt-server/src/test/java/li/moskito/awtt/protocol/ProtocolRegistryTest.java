@@ -48,4 +48,12 @@ public class ProtocolRegistryTest {
         assertEquals(this.protocol, registry.forName("test"));
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testRegisterProtocol_alreadyRegistered() throws Exception {
+        final ProtocolRegistry registry = ProtocolRegistry.getInstance();
+        registry.registerProtocol("test2", this.protocol);
+        registry.registerProtocol("test2", this.protocol);
+
+    }
+
 }

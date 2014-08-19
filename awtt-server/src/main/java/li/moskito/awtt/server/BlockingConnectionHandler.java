@@ -73,9 +73,9 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
                 // wait for incoming connections
                 final SocketChannel client = serverSocketChannel.accept();
 
-                if (this.connectionControl.getKeepAliveTimeout() != 0) {
-                    client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
-                }
+                LOG.debug("Processing connection from {}", client.getRemoteAddress());
+
+                this.setKeepAlive(client);
 
                 // set to blocking
                 client.configureBlocking(true);
@@ -85,6 +85,21 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
             } catch (final IOException e) {
                 throw new ServerRuntimeException("Error occured", e);
             }
+        }
+    }
+
+    /**
+     * Sets the keep alive socket option to the client if a keep alive timeout has been specified
+     * 
+     * @param client
+     *            the client connection for which the keepalive option should be set
+     * @throws IOException
+     */
+    private void setKeepAlive(final SocketChannel client) throws IOException {
+        if (this.connectionControl.getKeepAliveTimeout() != 0) {
+            client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
+        } else {
+            client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.FALSE);
         }
     }
 

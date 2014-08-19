@@ -12,7 +12,10 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -61,14 +64,16 @@ public class MessageChannelTest {
         TestMessageChannel.mock = this.channel;
         this.buffer = ByteBuffer.allocate(16 * 1024);
         when(this.outMessage.getCharset()).thenReturn(StandardCharsets.ISO_8859_1);
+
     }
 
     @Test
-    public void testRead() throws Exception {
+    public void testRead_ByteBuffer() throws Exception {
         final String expectedMessage = "TestMessage";
         when(this.channel.serializeHeader(any(Header.class))).thenReturn(CharBuffer.wrap(expectedMessage));
+        // write a message to the channel
         this.subject.write(this.outMessage);
-        // read to byteBuffer
+        // read the message in the channel to byteBuffer
         this.subject.read(this.buffer);
         this.buffer.flip();
 
@@ -78,8 +83,15 @@ public class MessageChannelTest {
         // TODO add tests for partial writes
     }
 
+    @Test(expected = IOException.class)
+    public void testRead_ByteBuffer_channelClosed() throws Exception {
+        this.subject.close();
+        this.subject.read(this.buffer);
+        this.buffer.flip();
+    }
+
     @Test
-    public void testWriteByteBuffer() throws Exception {
+    public void testWrite_ByteBuffer() throws Exception {
         when(this.channel.parseMessage(this.buffer)).thenReturn(this.inMessage);
 
         // write from byteBuffer
@@ -87,6 +99,74 @@ public class MessageChannelTest {
 
         verify(this.channel).parseMessage(this.buffer);
         assertTrue(this.subject.hasMessage());
+    }
+
+    @Test(expected = IOException.class)
+    public void testWrite_ByteBuffer_channelClosed() throws Exception {
+        this.subject.close();
+
+        // write from byteBuffer
+        this.subject.write(this.buffer);
+    }
+
+    @Test
+    public void testWriteBody_noBinaryBody() throws IOException {
+        final Body body = mock(Body.class);
+        final int initialPosition = this.buffer.position();
+        assertEquals(-1, this.subject.writeBody(body, this.buffer));
+        assertEquals(initialPosition, this.buffer.position());
+    }
+
+    @Test
+    public void testWriteBody_binaryBody_noContent() throws IOException {
+        final Body body = mock(BinaryBody.class);
+        final int initialPosition = this.buffer.position();
+        assertEquals(-1, this.subject.writeBody(body, this.buffer));
+        assertEquals(initialPosition, this.buffer.position());
+    }
+
+    @Test
+    public void testWriteBody_binaryBody_binaryContent_complete() throws IOException {
+        // prepare binary channel (from file)
+        final String testcontent = "TestContent";
+        final byte[] testContent = testcontent.getBytes();
+        final Path tempFile = Files.createTempFile("bodyDate", "txt");
+        Files.write(tempFile, testContent);
+        final FileChannel ch = FileChannel.open(tempFile);
+        // prepare body
+        final BinaryBody body = mock(BinaryBody.class);
+        when(body.getByteChannel()).thenReturn(ch);
+
+        final int initialPosition = this.buffer.position();
+        assertEquals(testContent.length, this.subject.writeBody(body, this.buffer)); // eof
+        assertEquals(initialPosition + testContent.length, this.buffer.position());
+        this.buffer.flip();
+        final String writtenBody = StandardCharsets.ISO_8859_1.decode(this.buffer).toString();
+        assertEquals(testcontent, writtenBody);
+    }
+
+    @Test
+    public void testWriteBody_binaryBody_binaryContent_partial() throws IOException {
+        // prepare binary channel (from file)
+        final String testcontent = "TestContent";
+        final byte[] testContent = testcontent.getBytes();
+        final Path tempFile = Files.createTempFile("bodyDate", "txt");
+        Files.write(tempFile, testContent);
+        final FileChannel ch = FileChannel.open(tempFile);
+        // prepare body
+        final BinaryBody body = mock(BinaryBody.class);
+        when(body.getByteChannel()).thenReturn(ch);
+        // prepare buffer
+        final int bufferSize = testcontent.length() - 1; // smaller than input!
+        final ByteBuffer smallBuffer = ByteBuffer.allocate(bufferSize);
+        // act
+        assertEquals(bufferSize, this.subject.writeBody(body, smallBuffer));
+
+        // assert
+        assertEquals(bufferSize, smallBuffer.position());
+        smallBuffer.flip();
+        final String writtenBody = StandardCharsets.ISO_8859_1.decode(smallBuffer).toString();
+        assertEquals(testcontent.substring(0, bufferSize), writtenBody);
     }
 
     @Test
