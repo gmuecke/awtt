@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 
@@ -41,6 +41,10 @@ public class BlockingConnectionHandlerTest {
         this.subject = new BlockingConnectionHandler();
         this.subject.configure(new HierarchicalConfiguration());
 
+        this.waitForPortAvailability();
+    }
+
+    private void waitForPortAvailability() throws InterruptedException {
         int retry = 3;
         while (retry-- > 0 && this.isPortInUse(TEST_PORT)) {
             LOG.warn("Test Port {} is still in use", TEST_PORT);
@@ -55,11 +59,11 @@ public class BlockingConnectionHandlerTest {
 
     private boolean isPortInUse(final int portNumber) {
         boolean result;
-        try (Socket s = new Socket(InetAddress.getLocalHost(), portNumber)) {
-            result = true;
+        try (ServerSocket s = new ServerSocket(portNumber)) {
+            result = false;
 
         } catch (final Exception e) {
-            result = false;
+            result = true;
         }
 
         return result;
@@ -84,7 +88,7 @@ public class BlockingConnectionHandlerTest {
     public void testRun_portAlreadyBound() throws Exception {
         this.subject.bind(this.port);
 
-        try (Socket s = new Socket(InetAddress.getLocalHost(), TEST_PORT)) {
+        try (ServerSocket s = new ServerSocket(TEST_PORT)) {
             // the test should terminate with an exception because the port of the handler is already in use
             this.subject.run();
         }
