@@ -9,7 +9,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -49,9 +48,9 @@ public class BlockingConnectionHandlerTest {
         }
         if (this.isPortInUse(TEST_PORT)) {
             fail("Test Port " + TEST_PORT + " is still in use");
+        } else {
+            Thread.sleep(250);
         }
-        Thread.sleep(100);
-
     }
 
     private boolean isPortInUse(final int portNumber) {
@@ -85,9 +84,7 @@ public class BlockingConnectionHandlerTest {
     public void testRun_portAlreadyBound() throws Exception {
         this.subject.bind(this.port);
 
-        try (ServerSocketChannel server = ServerSocketChannel.open()) {
-            server.bind(new InetSocketAddress("localhost", TEST_PORT));
-
+        try (Socket s = new Socket(InetAddress.getLocalHost(), TEST_PORT)) {
             // the test should terminate with an exception because the port of the handler is already in use
             this.subject.run();
         }
