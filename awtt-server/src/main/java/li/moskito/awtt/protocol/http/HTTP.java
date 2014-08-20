@@ -16,7 +16,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
 import li.moskito.awtt.common.Configurable;
-import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
@@ -81,7 +80,16 @@ public class HTTP implements Protocol, Configurable {
 
     @Override
     public Message process(final Message message) {
-        return this.process((HttpRequest) message);
+        if (message instanceof HttpRequest) {
+            return this.process((HttpRequest) message);
+        } else if (message instanceof HttpResponse) {
+            return this.process((HttpResponse) message);
+        }
+        return createResponse(HttpStatusCodes.BAD_REQUEST);
+    }
+
+    public HttpResponse process(final HttpResponse message) {
+        return message;
     }
 
     public HttpResponse process(final HttpRequest message) {
@@ -181,8 +189,7 @@ public class HTTP implements Protocol, Configurable {
      *            the request to be checked
      * @return <code>false</code> if the connection has to be kept alive, <code>true</code> if not
      */
-    @Override
-    public boolean isCloseChannelsAfterProcess(final Message request) {
+    boolean closeChannelOnCompletion(final Message request) {
         final String connectionField;
         final HttpHeader header = (HttpHeader) request.getHeader();
         if (header.hasField(RequestHeaders.CONNECTION)) {
@@ -200,16 +207,21 @@ public class HTTP implements Protocol, Configurable {
         }
     }
 
-    @Override
-    public List<HeaderField> getKeepAliverHeaders(final ConnectionAttributes connectionParams) {
+    /**
+     * Creates keep alive header information using the specified parameters
+     * 
+     * @param connectionControl
+     * @return a list of header fields that can be added to a response in order to inform the receiver on how to handle
+     *         the connection
+     */
+    List<HeaderField> getKeepAliverHeaders(final int timeout, final int maxConnections) {
 
         final List<HeaderField> keepAliveHeader = new ArrayList<>();
+
         //@formatter:off
-        keepAliveHeader.add( new HttpHeaderField (ResponseHeaders.CONNECTION, "Keep-Alive"));
-        keepAliveHeader.add( new HttpHeaderField(CustomHeaderFieldDefinition.forName("Keep-Alive"), 
-                String.format("timeout=%s, max=%s", 
-                        connectionParams.getKeepAliveTimeout(),
-                        connectionParams.getMaxMessagesPerConnection())));
+        keepAliveHeader.add(new HttpHeaderField(ResponseHeaders.CONNECTION, "Keep-Alive"));
+        keepAliveHeader.add(new HttpHeaderField(CustomHeaderFieldDefinition.forName("Keep-Alive"), 
+                String.format("timeout=%s, max=%s", timeout, maxConnections)));
         // @formatter:on
         return keepAliveHeader;
     }

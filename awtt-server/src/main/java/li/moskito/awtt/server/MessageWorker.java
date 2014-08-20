@@ -7,16 +7,15 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-import li.moskito.awtt.protocol.ConnectionAttributes;
-import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
-import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.util.Channels;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * A Message worker receives data from a client socket and passes it to a channel of the protocol of the port is
+ * 
  * @author Gerald
  */
 public class MessageWorker implements Runnable {
@@ -28,55 +27,28 @@ public class MessageWorker implements Runnable {
 
     private final SocketChannel clientChannel;
 
-    private final Port port;
-    private final ConnectionAttributes connectionParams;
-
     private final MessageChannel serverChannel;
 
-    private long timeout;
-
-    private int numMessages;
-
     /**
-     * @param client
-     * @param messageHandlers
-     * @param connectionParams
+     * @param clientChannel
+     *            a socket channel from the connecting client
+     * @param serverChannel
+     *            a message channel to interpret and process messages received from the client
      */
-    public MessageWorker(final SocketChannel channel, final Port port,
-            final ConnectionAttributes connectionParams) {
-        this.clientChannel = channel;
-        this.port = port;
-        this.serverChannel = port.getProtocol().openChannel();
-        this.connectionParams = connectionParams;
-    }
+    public MessageWorker(final SocketChannel clientChannel, final MessageChannel serverChannel) {
 
-    /**
-     * Returns the connection control element providing connection specific parameters that may influence the behavior
-     * of the message processing
-     * 
-     * @return the {@link ConnectionAttributes} bean
-     */
-    public ConnectionAttributes getConnectionControl() {
-        return this.connectionParams;
+        this.clientChannel = clientChannel;
+        this.serverChannel = serverChannel;
     }
 
     @Override
     public void run() {
-
-        this.initializeProcessing();
-
         try {
-            while (this.clientChannel.isConnected() && this.receiveMessage()) {
-
-                this.updateMessageCount();
-                this.updateTimeout();
-
-                final Message request = this.serverChannel.readMessage();
-                final boolean keepAlive = this.processMessage(request);
-
-                if (!keepAlive) {
-                    break;
-                }
+            while (this.channelsOpen() && this.receiveMessage()) {
+                // process the messages
+                this.serverChannel.processMessages();
+                // and send responses
+                Channels.stream(this.serverChannel, this.clientChannel);
             }
 
         } catch (final IOException e) {
@@ -87,49 +59,12 @@ public class MessageWorker implements Runnable {
     }
 
     /**
-     * Processes the request using the specified protocol.
+     * Checks if both channels are open
      * 
-     * @param request
-     *            the message to be processed
-     * @return flag to indicate whether to close the connection after the processing (<code>false</code>) or to keep it
-     *         open (<code>true</code>).
-     * @throws IOException
+     * @return
      */
-    private boolean processMessage(final Message request) throws IOException {
-
-        final Protocol protocol = this.port.getProtocol();
-
-        final Message response = protocol.process(request);
-
-        final boolean keepAlive = this.isKeepAlive(protocol, request);
-
-        if (response != null) {
-
-            if (keepAlive) {
-                response.getHeader().addFields(protocol.getKeepAliverHeaders(this.connectionParams));
-            }
-
-            this.serverChannel.write(response);
-            Channels.stream(this.serverChannel, this.clientChannel);
-        }
-
-        return keepAlive;
-    }
-
-    /**
-     * Determines if the connection should be kept alive after the processing of a message or not.
-     * 
-     * @param protocol
-     *            the protocol that is used to interpret the requestor information in the request
-     * @param request
-     *            the request containing possibly information from the information how to handle the connection
-     * @return <code>true</code> if the connection should be kept alive
-     */
-    private boolean isKeepAlive(final Protocol protocol, final Message request) {
-        final boolean keepAlive = !protocol.isCloseChannelsAfterProcess(request);
-        final boolean timeoutReached = this.timeout < System.currentTimeMillis();
-        final boolean messageLimitReached = this.numMessages == 0;
-        return keepAlive && !timeoutReached && !messageLimitReached;
+    private boolean channelsOpen() {
+        return this.clientChannel.isConnected() && this.serverChannel.isOpen();
     }
 
     /**
@@ -148,20 +83,20 @@ public class MessageWorker implements Runnable {
         }
     }
 
-    private void initializeProcessing() {
-        // set the initial keep alive timer
-        this.updateTimeout();
-        this.updateMessageCount();
-    }
-
+    /**
+     * Reads a message from the client channel (receive incoming) and writes them to the server channel
+     * 
+     * @return
+     * @throws IOException
+     */
     private boolean receiveMessage() throws IOException {
 
         // TODO read buffer size from port config
         final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
 
         while (!this.serverChannel.hasMessage()) {
-
             // TODO add timeout!
+            // TODO support partial messages
             if (this.clientChannel.read(buffer) != -1) {
                 buffer.flip();
                 this.serverChannel.write(buffer);
@@ -169,29 +104,8 @@ public class MessageWorker implements Runnable {
             } else {
                 return false;
             }
-
         }
         return true;
-    }
-
-    /**
-     * Sets or Resets the message count before the connection terminates
-     */
-    private void updateMessageCount() {
-        if (this.connectionParams.getMaxMessagesPerConnection() != ConnectionAttributes.UNLIMITED) {
-            if (this.numMessages > 0) {
-                this.numMessages--;
-            } else {
-                this.numMessages = this.connectionParams.getMaxMessagesPerConnection();
-            }
-        }
-    }
-
-    /**
-     * Updates the time when the current connection times out.
-     */
-    private void updateTimeout() {
-        this.timeout = System.currentTimeMillis() + this.connectionParams.getKeepAliveTimeout() * 1000;
     }
 
 }

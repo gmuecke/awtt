@@ -1,10 +1,13 @@
 package li.moskito.awtt.protocol.http;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -15,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.HeaderFieldDefinition;
+import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.Protocol;
 
 import org.junit.Before;
@@ -138,6 +142,12 @@ public class HttpChannelTest {
     }
 
     @Test
+    public void testParseMessageByteBuffer_emptyString() throws Exception {
+        final ByteBuffer in = this.toByteBuffer("\n");
+        assertNull(this.httpChannel.parseMessage(in));
+    }
+
+    @Test
     public void testSerializeHeader_Header_Simple() throws Exception {
 
         final HttpHeader header = new HttpHeader(HttpStatusCodes.ACCEPTED);
@@ -160,7 +170,28 @@ public class HttpChannelTest {
         try (HttpChannel channel = new HttpChannel(protocol)) {
             assertEquals(protocol, channel.getProtocol());
         }
+    }
 
+    @Test
+    public void testProcessMessages_andCloseAfterwards() throws Exception {
+        when(this.protocol.closeChannelOnCompletion(any(Message.class))).thenReturn(true);
+
+        this.httpChannel.write(this.toByteBuffer("GET / HTTP/1.1"));
+        this.httpChannel.processMessages();
+        this.httpChannel.read(ByteBuffer.allocate(2014));
+
+        assertFalse(this.httpChannel.isOpen());
+    }
+
+    @Test
+    public void testProcessMessages_andRemainOpen() throws Exception {
+        when(this.protocol.closeChannelOnCompletion(any(Message.class))).thenReturn(false);
+
+        this.httpChannel.read(this.toByteBuffer("GET / HTTP/1.1"));
+        this.httpChannel.processMessages();
+        this.httpChannel.write(ByteBuffer.allocate(2014));
+
+        assertTrue(this.httpChannel.isOpen());
     }
 
     private ByteBuffer toByteBuffer(final String rawMessage) {

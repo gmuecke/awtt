@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.TimeZone;
 
 import li.moskito.awtt.common.Configurable;
-import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.HeaderField;
+import li.moskito.awtt.protocol.Message;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -65,7 +65,7 @@ public class HTTPTest {
     }
 
     @Test
-    public void testProcess_noHandlers() throws Exception {
+    public void testProcess_HttpRequest_noHandlers() throws Exception {
         final HttpResponse response = this.http.process(this.request);
         assertNotNull(response);
         assertEquals(HttpStatusCodes.NOT_IMPLEMENTED, response.getStatusCode());
@@ -73,7 +73,7 @@ public class HTTPTest {
     }
 
     @Test
-    public void testProcess_withHandlers() throws Exception {
+    public void testProcess_HttpRequest_withHandlers() throws Exception {
         this.testConfigure();
         when(this.mockHandler.accepts(this.request)).thenReturn(true);
         when(this.mockHandler.onGet(this.request)).thenReturn(this.response);
@@ -83,6 +83,40 @@ public class HTTPTest {
         assertNotNull(actualResponse);
         assertEquals(this.response, actualResponse);
 
+    }
+
+    @Test
+    public void testProcess_HttpResponse() throws Exception {
+        final HttpResponse response = mock(HttpResponse.class);
+        assertEquals(response, this.http.process(response));
+    }
+
+    @Test
+    public void testProcess_Message_request() throws Exception {
+        this.testConfigure();
+        when(this.mockHandler.accepts(this.request)).thenReturn(true);
+        when(this.mockHandler.onGet(this.request)).thenReturn(this.response);
+        when(this.request.getCommand()).thenReturn(HttpCommands.GET);
+
+        final Message actualResponse = this.http.process((Message) this.request);
+        assertNotNull(actualResponse);
+        assertEquals(this.response, actualResponse);
+
+    }
+
+    @Test
+    public void testProcess_Message_response() throws Exception {
+        final HttpResponse response = mock(HttpResponse.class);
+        assertEquals(response, this.http.process((Message) response));
+    }
+
+    @Test
+    public void testProcess_Message_any() throws Exception {
+        final Message request = mock(Message.class);
+        final Message responseMessage = this.http.process(request);
+        assertTrue(this.response instanceof HttpResponse);
+        final HttpResponse response = (HttpResponse) responseMessage;
+        assertEquals(HttpStatusCodes.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -156,45 +190,42 @@ public class HTTPTest {
     }
 
     @Test
-    public void testIsCloseChannelsAfterProcess_http11_close() throws Exception {
+    public void testCloseChannelOnCompletion_http11_close() throws Exception {
         when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
         final HttpHeaderField connectionField = mock(HttpHeaderField.class);
         when(connectionField.getValue()).thenReturn("close");
         when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
         when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
 
-        assertTrue(this.http.isCloseChannelsAfterProcess(this.request));
+        assertTrue(this.http.closeChannelOnCompletion(this.request));
     }
 
     @Test
-    public void testIsCloseChannelsAfterProcess_http11_defaultKeepAlive() throws Exception {
+    public void testCloseChannelOnCompletion_http11_defaultKeepAlive() throws Exception {
         when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
-        assertFalse(this.http.isCloseChannelsAfterProcess(this.request));
+        assertFalse(this.http.closeChannelOnCompletion(this.request));
     }
 
     @Test
-    public void testIsCloseChannelsAfterProcess_http10_keepAlive() throws Exception {
+    public void testCloseChannelOnCompletion_http10_keepAlive() throws Exception {
         when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
         final HttpHeaderField connectionField = mock(HttpHeaderField.class);
         when(connectionField.getValue()).thenReturn("keep-alive");
         when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
         when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
 
-        assertFalse(this.http.isCloseChannelsAfterProcess(this.request));
+        assertFalse(this.http.closeChannelOnCompletion(this.request));
     }
 
     @Test
-    public void testIsCloseChannelsAfterProcess_http10_defaultClose() throws Exception {
+    public void testCloseChannelOnCompletion_http10_defaultClose() throws Exception {
         when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
-        assertTrue(this.http.isCloseChannelsAfterProcess(this.request));
+        assertTrue(this.http.closeChannelOnCompletion(this.request));
     }
 
     @Test
     public void testGetKeepAliverHeaders() throws Exception {
-        final ConnectionAttributes params = mock(ConnectionAttributes.class);
-        when(params.getKeepAliveTimeout()).thenReturn(3);
-        when(params.getMaxMessagesPerConnection()).thenReturn(257);
-        final List<HeaderField> headers = this.http.getKeepAliverHeaders(params);
+        final List<HeaderField> headers = this.http.getKeepAliverHeaders(3, 257);
         assertEquals(2, headers.size());
         assertEquals(ResponseHeaders.CONNECTION, headers.get(0).getHeaderFieldDefinition());
         assertEquals("Keep-Alive", headers.get(0).getValue());
@@ -202,5 +233,4 @@ public class HTTPTest {
         assertEquals("timeout=3, max=257", headers.get(1).getValue());
 
     }
-
 }

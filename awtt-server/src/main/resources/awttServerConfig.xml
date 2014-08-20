@@ -5,7 +5,7 @@
 			<handler class="li.moskito.awtt.server.http.StaticFileContentRequestHandler">
 				<!-- BEGIN Handler specific configuration -->	
 				<!-- Location (as URI) that contains the files to be hosted -->
-				<contentRoot>file:/C:/http/htdocs</contentRoot>
+				<contentRoot>file:/C:/http/template</contentRoot>
 				<indexFile>index.html</indexFile>
 				<!-- ContentType - FileExtension mapping -->
 				<contentTypes>
@@ -22,6 +22,7 @@
 					<type mimeType="image/jpeg" fileExtension="jpe" />
 					<type mimeType="image/tiff" fileExtension="tif" />
 					<type mimeType="image/tiff" fileExtension="tiff" />
+					<type mimeType="application/javascript" fileExtension="js" />
 					<type mimeType="application/pdf" fileExtension="pdf" />
 				</contentTypes>
 				<!-- END Handler specific configuration -->
@@ -33,9 +34,9 @@
 			<connectionHandler
 				class="li.moskito.awtt.server.BlockingConnectionHandler">
 				<!-- Number of concurrent connections -->
-				<maxConnections>5</maxConnections>
+				<maxConnections>250</maxConnections>
 				<!-- Keep Alive timeout in seconds, remove element for closing after a message has been processed -->
-				<keepAlive>5</keepAlive>
+				<keepAliveTimeout>5</keepAliveTimeout>
 				<!-- Maximum of Messages before the connection closes. Remove element for unlimited -->
 				<maxMessagesPerConnection>100</maxMessagesPerConnection>
 			</connectionHandler>

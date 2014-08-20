@@ -2,23 +2,31 @@ package li.moskito.awtt.server;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 import org.apache.commons.configuration.HierarchicalConfiguration;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlockingConnectionHandlerTest {
+
+    /**
+     * SLF4J Logger for this class
+     */
+    private static final Logger LOG = LoggerFactory.getLogger(BlockingConnectionHandlerTest.class);
 
     private static final int TEST_PORT = 55000;
 
@@ -32,21 +40,39 @@ public class BlockingConnectionHandlerTest {
         when(this.port.getHostname()).thenReturn(InetAddress.getLoopbackAddress());
         when(this.port.getPortNumber()).thenReturn(TEST_PORT);
         this.subject = new BlockingConnectionHandler();
+        this.subject.configure(new HierarchicalConfiguration());
+
+        int retry = 3;
+        while (retry-- > 0 && this.isPortInUse(TEST_PORT)) {
+            LOG.warn("Test Port {} is still in use", TEST_PORT);
+            Thread.sleep(250);
+        }
+        if (this.isPortInUse(TEST_PORT)) {
+            fail("Test Port " + TEST_PORT + " is still in use");
+        }
+
     }
 
-    @After
-    public void tearDown() throws InterruptedException {
+    private boolean isPortInUse(final int portNumber) {
+        boolean result;
+        try (Socket s = new Socket(InetAddress.getLocalHost(), portNumber)) {
+            result = true;
 
-        // wait a bit so the sockets are freed again
-        Thread.sleep(200);
+        } catch (final Exception e) {
+            result = false;
+        }
+
+        return result;
     }
 
     @Test
     public void testRun_portBound() throws Exception {
         this.subject.bind(this.port);
+
         final Thread subjectThread = new Thread(this.subject);
         subjectThread.start();
         Thread.sleep(200);
+
         final SocketAddress address = new InetSocketAddress("localhost", TEST_PORT);
         final SocketChannel clientConnection = SocketChannel.open(address);
         assertTrue(clientConnection.isConnected());
@@ -82,7 +108,7 @@ public class BlockingConnectionHandlerTest {
     public void testConfigure_invalidPoolSize() throws Exception {
 
         final HierarchicalConfiguration conf = new HierarchicalConfiguration();
-        conf.addProperty("maxConnections", -1); // invalid pool size
+        conf.addProperty("maxConnections", "-1"); // invalid pool size
         this.subject.configure(conf);
 
         this.subject.bind(this.port);

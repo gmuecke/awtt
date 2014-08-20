@@ -10,17 +10,24 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 
+import li.moskito.awtt.protocol.ChannelEventListener;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
+import li.moskito.awtt.protocol.Event;
 import li.moskito.awtt.protocol.Header;
 import li.moskito.awtt.protocol.HeaderField;
+import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
+import li.moskito.awtt.protocol.MessageChannelOption;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Gerald
@@ -34,17 +41,52 @@ public class HttpChannel extends MessageChannel {
 
     private final HTTP protocol;
 
+    private long timeout;
+
+    private int numMessages;
+
+    private final AtomicBoolean closeOnEmptyOutputQueue = new AtomicBoolean(false);
+
     /**
      * @param protocol
      */
     public HttpChannel(final HTTP protocol) {
         super();
         this.protocol = protocol;
+        this.timeout = System.currentTimeMillis() + HttpChannelOptions.KEEP_ALIVE_TIMEOUT.getDefault();
+        this.numMessages = HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES.getDefault();
+
+        this.subscribe(ErrorEvents.PARSE_ERROR, new ChannelEventListener() {
+
+            @Override
+            public void onEvent(final Event<?> event) {
+                HttpChannel.this.receiveIncomingMessage(HTTP.createResponse(HttpStatusCodes.BAD_REQUEST));
+            }
+        });
+
+        this.subscribe(LifecycleEvents.OUTPUT_QUEUE_EMPTY, new ChannelEventListener() {
+            @Override
+            public void onEvent(final Event<?> event) {
+                if (HttpChannel.this.closeOnEmptyOutputQueue.get()) {
+                    try {
+                        HttpChannel.this.close();
+                    } catch (final IOException e) {
+                        LOG.warn("Error during closing of channel", e);
+                    }
+                }
+            }
+        });
     }
 
     @Override
     public Protocol getProtocol() {
         return this.protocol;
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public Set<MessageChannelOption> getSupportedOptions() {
+        return HttpChannelOptions.SUPPORTED_OPTIONS;
     }
 
     @Override
@@ -68,7 +110,28 @@ public class HttpChannel extends MessageChannel {
             return null;
         }
         final HttpRequest result = this.parseRequestLine(requestLine);
+        final List<HttpHeaderField> fields = this.parseFields(charBuffer);
+        result.getHeader().addHttpHeaderFields(fields);
 
+        if (!this.isKeepAlive(result)) {
+            this.closeOnEmptyOutputQueue.set(true);
+        }
+        this.updateTimeout();
+        this.updateMessageCount();
+
+        return result;
+    }
+
+    /**
+     * Parses the header fields from the charbuffer and returns them in a list
+     * 
+     * @param charBuffer
+     *            the charBuffer to read the fields from. The position of the buffer is on the first character of the
+     *            first field.
+     * @return the list of parsed header fields
+     * @throws HttpProtocolException
+     */
+    private List<HttpHeaderField> parseFields(final CharBuffer charBuffer) throws HttpProtocolException {
         final List<HttpHeaderField> fields = new ArrayList<>();
 
         String fieldLine = this.readLine(charBuffer);
@@ -79,9 +142,7 @@ public class HttpChannel extends MessageChannel {
             fields.add(this.parseRequestHeaderField(fieldLine));
             fieldLine = this.readLine(charBuffer);
         }
-
-        result.getHeader().addHttpHeaderFields(fields);
-        return result;
+        return fields;
     }
 
     /**
@@ -169,6 +230,15 @@ public class HttpChannel extends MessageChannel {
 
     @Override
     protected CharBuffer serializeHeader(final Header header) {
+
+        //@formatter:off
+        if(!this.closeOnEmptyOutputQueue.get()) {
+            header.addFields(this.protocol.getKeepAliverHeaders(
+                    this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT),
+                    this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES)));
+        }
+        //@formatter:on
+
         return this.serializeHeader((HttpHeader) header);
     }
 
@@ -190,6 +260,42 @@ public class HttpChannel extends MessageChannel {
         buf.getChars(0, buf.length(), serializedResponse, 0);
         LOG.debug("Serialized Response: \n{}", buf);
         return CharBuffer.wrap(serializedResponse);
+    }
+
+    /**
+     * Sets or Resets the message count before the connection terminates
+     */
+    private void updateMessageCount() {
+        if (HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES.getDefault() != -1) {
+            if (this.numMessages > 0) {
+                this.numMessages--;
+            } else {
+                this.numMessages = HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES.getDefault();
+            }
+        }
+    }
+
+    /**
+     * Updates the time when the current connection times out.
+     */
+    private void updateTimeout() {
+        this.timeout = System.currentTimeMillis() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT) * 1000;
+    }
+
+    /**
+     * Determines if the connection should be kept alive after the processing of a message or not.
+     * 
+     * @param protocol
+     *            the protocol that is used to interpret the requestor information in the request
+     * @param request
+     *            the request containing possibly information from the information how to handle the connection
+     * @return <code>true</code> if the connection should be kept alive
+     */
+    private boolean isKeepAlive(final Message request) {
+        final boolean keepAlive = !this.protocol.closeChannelOnCompletion(request);
+        final boolean timeoutReached = this.timeout < System.currentTimeMillis();
+        final boolean messageLimitReached = this.numMessages == 0;
+        return keepAlive && !timeoutReached && !messageLimitReached;
     }
 
 }

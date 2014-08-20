@@ -9,12 +9,16 @@ import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import li.moskito.awtt.common.Configurable;
-import li.moskito.awtt.protocol.ConnectionAttributes;
+import li.moskito.awtt.protocol.MessageChannel;
+import li.moskito.awtt.protocol.MessageChannelOption;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -27,14 +31,26 @@ import org.slf4j.LoggerFactory;
 public class BlockingConnectionHandler implements ConnectionHandler, Configurable {
 
     /**
+     * 
+     */
+    private static final String KEEP_ALIVE_TIMEOUT_OPTION = "keepAliveTimeout";
+
+    /**
      * SLF4J Logger for this class
      */
     private static final Logger LOG = LoggerFactory.getLogger(BlockingConnectionHandler.class);
 
+    /**
+     * 
+     */
+    private static final String MAX_CONNECTIONS_OPTION = "maxConnections";
+
+    private static final int DEFAULT_MAX_CONNECTIONS = 5;
+
     private Port port;
     private final AtomicBoolean running = new AtomicBoolean(true);
 
-    private ConnectionAttributes connectionControl = ConnectionAttributes.DEFAULT_CONNECTION_PARAMS;
+    private final Map<String, String> connectionOptions = new HashMap<>();
 
     @Override
     public void run() {
@@ -66,8 +82,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     private void handleConnections(final ServerSocketChannel serverSocketChannel) {
 
         // create a thread pool for incoming connections according to configuration
-        final ExecutorService connectionExecutorService = Executors.newFixedThreadPool(this.connectionControl
-                .getMaxConnections());
+        final ExecutorService connectionExecutorService = Executors.newFixedThreadPool(this.getMaxConnections());
 
         while (this.running.get()) {
             try {
@@ -90,6 +105,24 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     }
 
     /**
+     * Retrieves the max connection count from the connection options
+     * 
+     * @return
+     */
+    private Integer getMaxConnections() {
+        return Integer.valueOf(this.connectionOptions.get(MAX_CONNECTIONS_OPTION));
+    }
+
+    /**
+     * True, if a "keepAliveTimeout" property was configured
+     * 
+     * @return
+     */
+    private boolean isKeepAliveEnabled() {
+        return this.connectionOptions.containsKey(KEEP_ALIVE_TIMEOUT_OPTION);
+    }
+
+    /**
      * Sets the keep alive socket option to the client if a keep alive timeout has been specified
      * 
      * @param client
@@ -97,7 +130,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
      * @throws IOException
      */
     private void setKeepAlive(final SocketChannel client) throws IOException {
-        if (this.connectionControl.getKeepAliveTimeout() != 0) {
+        if (this.isKeepAliveEnabled()) {
             client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
         } else {
             client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.FALSE);
@@ -114,11 +147,30 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     private void dispatchClientConnection(final SocketChannel client, final ExecutorService connectionExecutorService)
             throws IOException {
 
+        // open a new message channel to process messages from the client
+        final MessageChannel serverChannel = this.openMessageChannel();
+
         // create a new worker for the incoming connection
-        final Runnable worker = new MessageWorker(client, this.port, this.connectionControl);
+        final Runnable worker = new MessageWorker(client, serverChannel);
 
         // and dispatch it to the thread pool
         connectionExecutorService.execute(worker);
+    }
+
+    /**
+     * Opens a new message channel using the protocol of the port. The channel's option are set according to the
+     * configuration of the connection handler.
+     * 
+     * @return the new message channel
+     */
+    private MessageChannel openMessageChannel() {
+        final MessageChannel serverChannel = this.port.getProtocol().openChannel();
+        for (final MessageChannelOption<?> option : serverChannel.getSupportedOptions()) {
+            if (this.connectionOptions.containsKey(option.name())) {
+                serverChannel.setOption(option, option.fromString(this.connectionOptions.get(option.name())));
+            }
+        }
+        return serverChannel;
     }
 
     /**
@@ -137,12 +189,13 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
 
     @Override
     public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
-        //@formatter:off
-        this.connectionControl = new ConnectionAttributes(
-                config.getInteger("maxConnections", ConnectionAttributes.DEFAULT_MAX_CONNECTIONS), 
-                config.getInteger("keepAlive", ConnectionAttributes.UNLIMITED),
-                config.getInteger("maxMessagesPerConnection", ConnectionAttributes.UNLIMITED));
-        //@formatter:on
+        // set defaults
+        this.connectionOptions.put(MAX_CONNECTIONS_OPTION, Integer.toString(DEFAULT_MAX_CONNECTIONS));
+        // override default with settings from configuration
+        for (final Iterator<String> keyIt = config.getKeys(); keyIt.hasNext();) {
+            final String key = keyIt.next();
+            this.connectionOptions.put(key, config.getString(key));
+        }
     }
 
     @Override
