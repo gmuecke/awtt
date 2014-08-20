@@ -50,6 +50,7 @@ public class BlockingConnectionHandlerTest {
         if (this.isPortInUse(TEST_PORT)) {
             fail("Test Port " + TEST_PORT + " is still in use");
         }
+        Thread.sleep(100);
 
     }
 
