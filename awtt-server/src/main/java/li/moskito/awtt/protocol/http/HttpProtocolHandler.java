@@ -3,9 +3,8 @@
  */
 package li.moskito.awtt.protocol.http;
 
-import java.util.Date;
-
 import li.moskito.awtt.protocol.ProtocolHandler;
+import li.moskito.awtt.protocol.http.HTTP.ResponseOptions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,22 +58,10 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
                 break;
             default:
                 LOG.warn("Unsuppported Command '{}'", httpRequest.getCommand());
-                response = HTTP.createResponse(HttpStatusCodes.BAD_REQUEST);
+                response = HTTP.createResponse(HttpStatusCodes.BAD_REQUEST, ResponseOptions.FORCE_CLOSE);
                 break;
         }
 
-        return this.addMandatoryHeaders(response);
-    }
-
-    /**
-     * Adds header fields to the response that are mandatory for each request
-     * 
-     * @param response
-     *            the response to be enriched
-     * @return the modified response
-     */
-    private HttpResponse addMandatoryHeaders(final HttpResponse response) {
-        response.addField(ResponseHeaders.DATE, HTTP.toHttpDate(new Date()));
         return response;
     }
 
@@ -83,7 +70,7 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onGet(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
 
     }
 
@@ -92,7 +79,7 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onPost(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
     }
 
     /**
@@ -100,7 +87,7 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onPut(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
     }
 
     /**
@@ -108,7 +95,8 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onDelete(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
+
     }
 
     /**
@@ -116,7 +104,7 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onHead(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
     }
 
     /**
@@ -124,7 +112,7 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onOptions(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
     }
 
     /**
@@ -132,7 +120,7 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onConnect(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
     }
 
     /**
@@ -140,7 +128,7 @@ public class HttpProtocolHandler implements ProtocolHandler<HttpRequest, HttpRes
      * @return
      */
     protected HttpResponse onTrace(final HttpRequest httpRequest) {
-        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return HTTP.createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
     }
 
 }
