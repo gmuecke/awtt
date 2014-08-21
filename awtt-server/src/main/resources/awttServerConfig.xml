@@ -30,7 +30,7 @@
 		</protocol>
 	</protocols>
 	<ports>
-		<listenPort hostname="" port="8080" protocol="http">
+		<listenPort hostname="" port="18080" protocol="http">
 			<connectionHandler
 				class="li.moskito.awtt.server.BlockingConnectionHandler">
 				<!-- Number of concurrent connections -->
