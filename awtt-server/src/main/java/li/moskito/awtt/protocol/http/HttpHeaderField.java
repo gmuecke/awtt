@@ -38,12 +38,8 @@ public class HttpHeaderField extends HeaderField {
         return (String) super.getValue();
     }
 
-    public void setValue(final String value) {
-        super.setValue(value);
-    }
-
     @Override
     public void setValue(final Object value) {
-        this.setValue((String) value);
+        this.setValue(value);
     }
 }

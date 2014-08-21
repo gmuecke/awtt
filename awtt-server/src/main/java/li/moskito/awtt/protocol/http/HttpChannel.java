@@ -191,7 +191,7 @@ public class HttpChannel extends MessageChannel {
         final Matcher matcher = HTTP.HTTP_REQUEST_LINE_PATTERN.matcher(requestLine);
 
         final HttpRequest httpRequest;
-        if (matcher.matches() && matcher.groupCount() >= 3) {
+        if (matcher.matches()) {
 
             try {
                 httpRequest = new HttpRequest(HttpCommands.valueOf(matcher.group(1)), new URI(matcher.group(2)),
@@ -218,11 +218,11 @@ public class HttpChannel extends MessageChannel {
      */
     private HttpHeaderField parseRequestHeaderField(final String fieldLine) throws HttpProtocolException {
         Matcher matcher = HTTP.HTTP_REQUEST_FIELD_PATTERN.matcher(fieldLine);
-        if (matcher.matches() && matcher.groupCount() >= 2) {
+        if (matcher.matches()) {
             return new HttpHeaderField(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
         }
         matcher = HTTP.HTTP_CUSTOM_FIELD_PATTERN.matcher(fieldLine);
-        if (matcher.matches() && matcher.groupCount() >= 2) {
+        if (matcher.matches()) {
             return new HttpHeaderField(CustomHeaderFieldDefinition.forName(matcher.group(1)), matcher.group(2));
         }
         throw new HttpProtocolException("Field '" + fieldLine + "' does not conform to http standard");
@@ -266,7 +266,7 @@ public class HttpChannel extends MessageChannel {
      * Sets or Resets the message count before the connection terminates
      */
     private void updateMessageCount() {
-        if (HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES.getDefault() != -1) {
+        if (this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES) != -1) {
             if (this.numMessages > 0) {
                 this.numMessages--;
             } else {

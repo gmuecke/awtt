@@ -1,6 +1,7 @@
 package li.moskito.awtt.server;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
@@ -100,6 +101,15 @@ public class MultiportServerTest {
 
         // TODO add some more assertions regarding the protocol
 
+    }
+
+    @Test
+    public void testStopServer() throws Exception {
+        assertFalse(this.subject.isRunning());
+        this.testConfigureAndStartServer();
+        assertTrue(this.subject.isRunning());
+        this.subject.stopServer();
+        assertFalse(this.subject.isRunning());
     }
     public static class TestProtocolHandler implements ProtocolHandler<Message, Message>, Configurable {
 

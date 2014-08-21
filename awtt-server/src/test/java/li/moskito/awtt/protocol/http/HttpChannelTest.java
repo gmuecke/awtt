@@ -136,15 +136,30 @@ public class HttpChannelTest {
     }
 
     @Test(expected = HttpProtocolException.class)
-    public void testParseMessageByteBuffer_invalidHeader() throws Exception {
+    public void testParseMessageByteBuffer_invalidHeader_noSeparator() throws Exception {
         final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\nCookie noSeparator");
         this.httpChannel.parseMessage(in);
     }
 
+    @Test(expected = HttpProtocolException.class)
+    public void testParseMessageByteBuffer_invalidHeader_invalidField() throws Exception {
+        final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\nCookie");
+        this.httpChannel.parseMessage(in);
+    }
+
     @Test
-    public void testParseMessageByteBuffer_emptyString() throws Exception {
+    public void testParseMessageByteBuffer_emptyRequestLine() throws Exception {
         final ByteBuffer in = this.toByteBuffer("\n");
         assertNull(this.httpChannel.parseMessage(in));
+    }
+
+    @Test
+    public void testParseMessageByteBuffer_emptyRequestHeaderFields() throws Exception {
+        // does not conform to http header
+        final ByteBuffer in = this.toByteBuffer("GET / HTTP/1.1\r\n \r\n");
+        final HttpMessage message = this.httpChannel.parseMessage(in);
+        assertNotNull(message);
+        assertTrue(message.getHeader().getFields().isEmpty());
     }
 
     @Test
@@ -158,6 +173,27 @@ public class HttpChannelTest {
         //@formatter:off
         final String expectedHeader = 
                 "HTTP/1.1 202 Accepted\r\n"
+              + "\r\n";
+        // @formatter:on
+        assertEquals(expectedHeader, serHeader.toString());
+
+    }
+
+    @Test
+    public void testSerializeHeader_Header_withFields() throws Exception {
+
+        final HttpHeader header = new HttpHeader(HttpStatusCodes.ACCEPTED);
+        header.addField(new HttpHeaderField(ResponseHeaders.CONNECTION, "keep-alive"));
+        header.addField(new HttpHeaderField(CustomHeaderFieldDefinition.forName("Keep-Alive"), "timeout=5, max=100"));
+
+        final CharBuffer serHeader = this.httpChannel.serializeHeader(header);
+        assertNotNull(serHeader);
+
+        //@formatter:off
+        final String expectedHeader = 
+                "HTTP/1.1 202 Accepted\r\n"
+              + "Connection: keep-alive\r\n"
+              + "Keep-Alive: timeout=5, max=100\r\n"
               + "\r\n";
         // @formatter:on
         assertEquals(expectedHeader, serHeader.toString());

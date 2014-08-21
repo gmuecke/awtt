@@ -3,12 +3,14 @@
  */
 package li.moskito.awtt.server;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import li.moskito.awtt.common.Configurable;
 import li.moskito.awtt.protocol.Protocol;
@@ -16,6 +18,8 @@ import li.moskito.awtt.protocol.ProtocolRegistry;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * WebServer Implementation based on blocking java.nio Channels
@@ -24,7 +28,13 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
  */
 public class MultiportServer implements Server {
 
+    /**
+     * SLF4J Logger for this class
+     */
+    private static final Logger LOG = LoggerFactory.getLogger(MultiportServer.class);
+
     private final List<ConnectionHandler> connectionHandlers;
+    private ExecutorService portExecutorService;
 
     /**
      * 
@@ -36,13 +46,43 @@ public class MultiportServer implements Server {
     @Override
     public void startServer() {
 
-        final ExecutorService portExecutorService = Executors.newFixedThreadPool(this.connectionHandlers.size());
+        this.portExecutorService = Executors.newFixedThreadPool(this.connectionHandlers.size());
 
         for (final ConnectionHandler conHandler : this.connectionHandlers) {
-            portExecutorService.execute(conHandler);
-
+            this.portExecutorService.execute(conHandler);
         }
-        portExecutorService.shutdown();
+    }
+
+    @Override
+    public void stopServer() {
+        // close connection Handlers so that no new connections are accepted
+        this.closeConnectionHandlers();
+        // finish execution of all handlers that are still processing
+        this.portExecutorService.shutdown();
+        try {
+            // wait up to two seconds for the handlers to shutdown
+            this.portExecutorService.awaitTermination(2, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            LOG.debug("Awaiting Termination interrupted", e);
+        } finally {
+            // send interrupt signal to all handlers
+            this.portExecutorService.shutdownNow();
+        }
+    }
+
+    private void closeConnectionHandlers() {
+        for (final ConnectionHandler conHandler : this.connectionHandlers) {
+            try {
+                conHandler.close();
+            } catch (final IOException e) {
+                LOG.warn("Error on closing connection handler {}", conHandler, e);
+            }
+        }
+    }
+
+    @Override
+    public boolean isRunning() {
+        return this.portExecutorService != null && !this.portExecutorService.isTerminated();
     }
 
     @Override

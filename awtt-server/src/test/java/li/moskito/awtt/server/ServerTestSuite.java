@@ -13,7 +13,7 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 @SuiteClasses({
         BlockingConnectionHandlerTest.class, MessageWorkerTest.class, MultiportServerTest.class, PortTest.class,
-        ServerBuilderTest.class, ServerRuntimeExceptionTest.class
+        ServerBuilderTest.class, ServerRuntimeExceptionTest.class, StartupTest.class
 })
 public class ServerTestSuite {
 

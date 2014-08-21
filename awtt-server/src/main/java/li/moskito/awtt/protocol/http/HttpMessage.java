@@ -44,8 +44,4 @@ public abstract class HttpMessage extends Message {
     public BinaryBody getBody() {
         return (BinaryBody) super.getBody();
     }
-
-    public void setBody(final BinaryBody body) {
-        super.setBody(body);
-    }
 }

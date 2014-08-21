@@ -43,11 +43,12 @@ public class HTTP implements Protocol, Configurable {
 
     //@formatter:off
     public static final Pattern HTTP_REQUEST_LINE_PATTERN = 
-                         Pattern.compile("^("+getCommandRegexGroup()+") (\\S+) ("+getVersionRegexGroup()+")(\\r\\n)?$");
+                        Pattern.compile("^("+getCommandRegexGroup()+") (\\S+) ("+getVersionRegexGroup()+")(\\r\\n)?$");
     public static final Pattern HTTP_REQUEST_FIELD_PATTERN = 
-                         Pattern.compile("^("+getRequestHeaderFieldRegexGroup()+"):\\s*(.*)(\\r\\n)?$");
+                        Pattern.compile("^("+getRequestHeaderFieldRegexGroup()+"):\\s*(.*)(\\r\\n)?$");
     public static final Pattern HTTP_CUSTOM_FIELD_PATTERN = 
-            Pattern.compile("^([A-Z][a-zA-Z\\-]+):\\s*(.*)(\\r\\n)?$");
+                        Pattern.compile("^([A-Z][a-zA-Z\\-]+):\\s*(.*)(\\r\\n)?$");
+    
     public static final Charset CHARSET = StandardCharsets.ISO_8859_1;
 
     public static final int HTTP_DEFAULT_PORT = 80;
@@ -63,7 +64,6 @@ public class HTTP implements Protocol, Configurable {
             return sdf;
         }
     };
-
     // @formatter:on
 
     /**
@@ -88,10 +88,23 @@ public class HTTP implements Protocol, Configurable {
         return createResponse(HttpStatusCodes.BAD_REQUEST);
     }
 
+    /**
+     * Passes the Response through without further processing
+     * 
+     * @param message
+     * @return
+     */
     public HttpResponse process(final HttpResponse message) {
         return message;
     }
 
+    /**
+     * Processes the Request by dispatching it to one of the configured handlers. If no handler is configured that
+     * accepts the request, a 501 Not Implemented Response is returned
+     * 
+     * @param message
+     * @return
+     */
     public HttpResponse process(final HttpRequest message) {
         LOG.debug("Processing Request\n{}", message);
         for (final HttpProtocolHandler handler : this.handlers) {

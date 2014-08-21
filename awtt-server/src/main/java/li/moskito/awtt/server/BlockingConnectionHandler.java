@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
@@ -98,6 +99,9 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
                 // dispatch the incoming connection to the thread pool
                 this.dispatchClientConnection(client, connectionExecutorService);
 
+            } catch (final ClosedByInterruptException e) {
+                LOG.info("Received interrupt signal, shutting down connection if closed");
+                LOG.debug("Received interrupt exception", e);
             } catch (final IOException e) {
                 throw new ServerRuntimeException("Error occured", e);
             }
