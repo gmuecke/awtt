@@ -10,17 +10,26 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 
+import li.moskito.awtt.protocol.ChannelEventListener;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
+import li.moskito.awtt.protocol.Event;
 import li.moskito.awtt.protocol.Header;
 import li.moskito.awtt.protocol.HeaderField;
+import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
+import li.moskito.awtt.protocol.MessageChannelOption;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicBoolean;
+import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicInteger;
+import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Gerald
@@ -34,12 +43,41 @@ public class HttpChannel extends MessageChannel {
 
     private final HTTP protocol;
 
+    private final AtomicLong timeout = new AtomicLong();
+
+    private final AtomicInteger numMessages = new AtomicInteger();
+
+    private final AtomicBoolean closeOnEmptyOutputQueue = new AtomicBoolean(false);
+
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+
     /**
      * @param protocol
      */
     public HttpChannel(final HTTP protocol) {
         super();
         this.protocol = protocol;
+        this.subscribe(ErrorEvents.PARSE_ERROR, new ChannelEventListener() {
+
+            @Override
+            public void onEvent(final Event<?> event) {
+                HttpChannel.this.receiveIncomingMessage(HTTP.createResponse(HttpStatusCodes.BAD_REQUEST));
+            }
+        });
+
+        this.subscribe(LifecycleEvents.OUTPUT_QUEUE_EMPTY, new ChannelEventListener() {
+            @Override
+            public void onEvent(final Event<?> event) {
+                if (HttpChannel.this.closeOnEmptyOutputQueue.get()) {
+                    try {
+                        LOG.debug("Closing channel");
+                        HttpChannel.this.close();
+                    } catch (final IOException e) {
+                        LOG.warn("Error during closing of channel", e);
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -47,8 +85,15 @@ public class HttpChannel extends MessageChannel {
         return this.protocol;
     }
 
+    @SuppressWarnings("rawtypes")
+    @Override
+    public Set<MessageChannelOption> getSupportedOptions() {
+        return HttpChannelOptions.SUPPORTED_OPTIONS;
+    }
+
     @Override
     protected HttpMessage parseMessage(final ByteBuffer src) throws ProtocolException, IOException {
+        this.checkAndInitializeState();
         return this.parseMessage(HTTP.CHARSET.decode(src));
     }
 
@@ -68,7 +113,24 @@ public class HttpChannel extends MessageChannel {
             return null;
         }
         final HttpRequest result = this.parseRequestLine(requestLine);
+        final List<HttpHeaderField> fields = this.parseFields(charBuffer);
+        result.getHeader().addHttpHeaderFields(fields);
 
+        this.updateState(result);
+
+        return result;
+    }
+
+    /**
+     * Parses the header fields from the charbuffer and returns them in a list
+     * 
+     * @param charBuffer
+     *            the charBuffer to read the fields from. The position of the buffer is on the first character of the
+     *            first field.
+     * @return the list of parsed header fields
+     * @throws HttpProtocolException
+     */
+    private List<HttpHeaderField> parseFields(final CharBuffer charBuffer) throws HttpProtocolException {
         final List<HttpHeaderField> fields = new ArrayList<>();
 
         String fieldLine = this.readLine(charBuffer);
@@ -79,9 +141,7 @@ public class HttpChannel extends MessageChannel {
             fields.add(this.parseRequestHeaderField(fieldLine));
             fieldLine = this.readLine(charBuffer);
         }
-
-        result.getHeader().addHttpHeaderFields(fields);
-        return result;
+        return fields;
     }
 
     /**
@@ -130,7 +190,7 @@ public class HttpChannel extends MessageChannel {
         final Matcher matcher = HTTP.HTTP_REQUEST_LINE_PATTERN.matcher(requestLine);
 
         final HttpRequest httpRequest;
-        if (matcher.matches() && matcher.groupCount() >= 3) {
+        if (matcher.matches()) {
 
             try {
                 httpRequest = new HttpRequest(HttpCommands.valueOf(matcher.group(1)), new URI(matcher.group(2)),
@@ -157,11 +217,11 @@ public class HttpChannel extends MessageChannel {
      */
     private HttpHeaderField parseRequestHeaderField(final String fieldLine) throws HttpProtocolException {
         Matcher matcher = HTTP.HTTP_REQUEST_FIELD_PATTERN.matcher(fieldLine);
-        if (matcher.matches() && matcher.groupCount() >= 2) {
+        if (matcher.matches()) {
             return new HttpHeaderField(RequestHeaders.fromString(matcher.group(1)), matcher.group(2));
         }
         matcher = HTTP.HTTP_CUSTOM_FIELD_PATTERN.matcher(fieldLine);
-        if (matcher.matches() && matcher.groupCount() >= 2) {
+        if (matcher.matches()) {
             return new HttpHeaderField(CustomHeaderFieldDefinition.forName(matcher.group(1)), matcher.group(2));
         }
         throw new HttpProtocolException("Field '" + fieldLine + "' does not conform to http standard");
@@ -169,6 +229,15 @@ public class HttpChannel extends MessageChannel {
 
     @Override
     protected CharBuffer serializeHeader(final Header header) {
+
+        //@formatter:off
+        if(!this.closeOnEmptyOutputQueue.get()) {
+            header.addFields(this.protocol.getKeepAliverHeaders(
+                    this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT),
+                    this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES)));
+        }
+        //@formatter:on
+
         return this.serializeHeader((HttpHeader) header);
     }
 
@@ -190,6 +259,78 @@ public class HttpChannel extends MessageChannel {
         buf.getChars(0, buf.length(), serializedResponse, 0);
         LOG.debug("Serialized Response: \n{}", buf);
         return CharBuffer.wrap(serializedResponse);
+    }
+
+    /**
+     * Check if the channel has been initialized and initialize it if not. The initialization is done be setting initial
+     * timeout and message count with the values from the channel options (if not set, defaults are used).
+     */
+    private void checkAndInitializeState() {
+        if (this.initialized.compareAndSet(false, true)) {
+            this.timeout.set(this.getElapsedSeconds() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT));
+            this.numMessages.set(this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES));
+        }
+    }
+
+    /**
+     * Updates the internal state depending on the current request. The message count updated, the timeout will be
+     * reset. The request may require to close the channel afterwards, or the message limit has been reached or the
+     * timeout has been reached.
+     * 
+     * @param currentRequest
+     */
+    private void updateState(final HttpRequest currentRequest) {
+        // first update the message count
+        this.decreaseMessageCount();
+        // determine whether to close the connection based on parameters of the request, the current (updated) message
+        // count and the current (not yet updated) timeout counter
+        this.updateKeepAliveState(currentRequest);
+        // reset the timeout
+        this.resetTimeout();
+    }
+
+    /**
+     * Sets or Resets the message count before the connection terminates
+     */
+    private void decreaseMessageCount() {
+        if (this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES) != -1) {
+            this.numMessages.decrementAndGet();
+        }
+    }
+
+    /**
+     * Updates the time when the current connection times out.
+     */
+    private void resetTimeout() {
+        if (this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT) != -1) {
+            this.timeout.set(this.getElapsedSeconds() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT));
+        }
+    }
+
+    /**
+     * Determines if the connection should be kept alive after the processing of a message or not.
+     * 
+     * @param protocol
+     *            the protocol that is used to interpret the requestor information in the request
+     * @param request
+     *            the request containing possibly information from the information how to handle the connection
+     * @return <code>true</code> if the connection should be kept alive
+     */
+    private void updateKeepAliveState(final Message request) {
+        final boolean closeOnRequest = this.protocol.isCloseOnRequest(request);
+        final boolean timeoutReached = this.timeout.get() != -1 && this.timeout.get() < this.getElapsedSeconds();
+        final boolean messageLimitReached = this.numMessages.get() <= 0;
+        this.closeOnEmptyOutputQueue.set(closeOnRequest || timeoutReached || messageLimitReached);
+    }
+
+    /**
+     * Returns a timer of seconds of the JVMs lifetime. This does not refer to a system time and is based on the
+     * System.nanoTime()
+     * 
+     * @return
+     */
+    private long getElapsedSeconds() {
+        return System.nanoTime() / 1_000_000_000;
     }
 
 }

@@ -16,7 +16,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
 import li.moskito.awtt.common.Configurable;
-import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
@@ -44,11 +43,12 @@ public class HTTP implements Protocol, Configurable {
 
     //@formatter:off
     public static final Pattern HTTP_REQUEST_LINE_PATTERN = 
-                         Pattern.compile("^("+getCommandRegexGroup()+") (\\S+) ("+getVersionRegexGroup()+")(\\r\\n)?$");
+                        Pattern.compile("^("+getCommandRegexGroup()+") (\\S+) ("+getVersionRegexGroup()+")(\\r\\n)?$");
     public static final Pattern HTTP_REQUEST_FIELD_PATTERN = 
-                         Pattern.compile("^("+getRequestHeaderFieldRegexGroup()+"):\\s*(.*)(\\r\\n)?$");
+                        Pattern.compile("^("+getRequestHeaderFieldRegexGroup()+"):\\s*(.*)(\\r\\n)?$");
     public static final Pattern HTTP_CUSTOM_FIELD_PATTERN = 
-            Pattern.compile("^([A-Z][a-zA-Z\\-]+):\\s*(.*)(\\r\\n)?$");
+                        Pattern.compile("^([A-Z][a-zA-Z\\-]+):\\s*(.*)(\\r\\n)?$");
+    
     public static final Charset CHARSET = StandardCharsets.ISO_8859_1;
 
     public static final int HTTP_DEFAULT_PORT = 80;
@@ -64,7 +64,6 @@ public class HTTP implements Protocol, Configurable {
             return sdf;
         }
     };
-
     // @formatter:on
 
     /**
@@ -81,9 +80,31 @@ public class HTTP implements Protocol, Configurable {
 
     @Override
     public Message process(final Message message) {
-        return this.process((HttpRequest) message);
+        if (message instanceof HttpRequest) {
+            return this.process((HttpRequest) message);
+        } else if (message instanceof HttpResponse) {
+            return this.process((HttpResponse) message);
+        }
+        return createResponse(HttpStatusCodes.BAD_REQUEST);
     }
 
+    /**
+     * Passes the Response through without further processing
+     * 
+     * @param message
+     * @return
+     */
+    public HttpResponse process(final HttpResponse message) {
+        return message;
+    }
+
+    /**
+     * Processes the Request by dispatching it to one of the configured handlers. If no handler is configured that
+     * accepts the request, a 501 Not Implemented Response is returned
+     * 
+     * @param message
+     * @return
+     */
     public HttpResponse process(final HttpRequest message) {
         LOG.debug("Processing Request\n{}", message);
         for (final HttpProtocolHandler handler : this.handlers) {
@@ -181,8 +202,7 @@ public class HTTP implements Protocol, Configurable {
      *            the request to be checked
      * @return <code>false</code> if the connection has to be kept alive, <code>true</code> if not
      */
-    @Override
-    public boolean isCloseChannelsAfterProcess(final Message request) {
+    boolean isCloseOnRequest(final Message request) {
         final String connectionField;
         final HttpHeader header = (HttpHeader) request.getHeader();
         if (header.hasField(RequestHeaders.CONNECTION)) {
@@ -196,20 +216,25 @@ public class HTTP implements Protocol, Configurable {
             case HTTP_1_1:
                 return "close".equals(connectionField);
             default:
-                return false;
+                return true;
         }
     }
 
-    @Override
-    public List<HeaderField> getKeepAliverHeaders(final ConnectionAttributes connectionParams) {
+    /**
+     * Creates keep alive header information using the specified parameters
+     * 
+     * @param connectionControl
+     * @return a list of header fields that can be added to a response in order to inform the receiver on how to handle
+     *         the connection
+     */
+    List<HeaderField> getKeepAliverHeaders(final int timeout, final int maxConnections) {
 
         final List<HeaderField> keepAliveHeader = new ArrayList<>();
+
         //@formatter:off
-        keepAliveHeader.add( new HttpHeaderField (ResponseHeaders.CONNECTION, "Keep-Alive"));
-        keepAliveHeader.add( new HttpHeaderField(CustomHeaderFieldDefinition.forName("Keep-Alive"), 
-                String.format("timeout=%s, max=%s", 
-                        connectionParams.getKeepAliveTimeout(),
-                        connectionParams.getMaxMessagesPerConnection())));
+        keepAliveHeader.add(new HttpHeaderField(ResponseHeaders.CONNECTION, "Keep-Alive"));
+        keepAliveHeader.add(new HttpHeaderField(CustomHeaderFieldDefinition.forName("Keep-Alive"), 
+                String.format("timeout=%s, max=%s", timeout, maxConnections)));
         // @formatter:on
         return keepAliveHeader;
     }

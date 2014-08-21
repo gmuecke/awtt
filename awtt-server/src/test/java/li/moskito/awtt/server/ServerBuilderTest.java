@@ -22,6 +22,16 @@ public class ServerBuilderTest {
 
         }
 
+        @Override
+        public void stopServer() {
+
+        }
+
+        @Override
+        public boolean isRunning() {
+            return false;
+        }
+
     }
 
     @Test

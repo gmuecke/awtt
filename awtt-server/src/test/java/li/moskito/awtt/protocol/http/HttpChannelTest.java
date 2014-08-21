@@ -1,11 +1,15 @@
 package li.moskito.awtt.protocol.http;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -15,26 +19,33 @@ import java.nio.charset.StandardCharsets;
 import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.HeaderFieldDefinition;
+import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.Protocol;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HttpChannelTest {
+
     @Mock
     private HTTP protocol;
-    @InjectMocks
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private HttpResponse outMessage;
+
     private HttpChannel httpChannel;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        when(this.outMessage.getCharset()).thenReturn(HTTP.CHARSET);
+        when(this.outMessage.getBody()).thenReturn(null);
+        this.httpChannel = new HttpChannel(this.protocol);
     }
 
     @Test
@@ -132,9 +143,30 @@ public class HttpChannelTest {
     }
 
     @Test(expected = HttpProtocolException.class)
-    public void testParseMessageByteBuffer_invalidHeader() throws Exception {
+    public void testParseMessageByteBuffer_invalidHeader_noSeparator() throws Exception {
         final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\nCookie noSeparator");
         this.httpChannel.parseMessage(in);
+    }
+
+    @Test(expected = HttpProtocolException.class)
+    public void testParseMessageByteBuffer_invalidHeader_invalidField() throws Exception {
+        final ByteBuffer in = this.toByteBuffer("GET /someFile HTTP/1.1\r\nCookie");
+        this.httpChannel.parseMessage(in);
+    }
+
+    @Test
+    public void testParseMessageByteBuffer_emptyRequestLine() throws Exception {
+        final ByteBuffer in = this.toByteBuffer("\n");
+        assertNull(this.httpChannel.parseMessage(in));
+    }
+
+    @Test
+    public void testParseMessageByteBuffer_emptyRequestHeaderFields() throws Exception {
+        // does not conform to http header
+        final ByteBuffer in = this.toByteBuffer("GET / HTTP/1.1\r\n \r\n");
+        final HttpMessage message = this.httpChannel.parseMessage(in);
+        assertNotNull(message);
+        assertTrue(message.getHeader().getFields().isEmpty());
     }
 
     @Test
@@ -155,12 +187,90 @@ public class HttpChannelTest {
     }
 
     @Test
+    public void testSerializeHeader_Header_withFields() throws Exception {
+
+        final HttpHeader header = new HttpHeader(HttpStatusCodes.ACCEPTED);
+        header.addField(new HttpHeaderField(ResponseHeaders.CONNECTION, "keep-alive"));
+        header.addField(new HttpHeaderField(CustomHeaderFieldDefinition.forName("Keep-Alive"), "timeout=5, max=100"));
+
+        final CharBuffer serHeader = this.httpChannel.serializeHeader(header);
+        assertNotNull(serHeader);
+
+        //@formatter:off
+        final String expectedHeader = 
+                "HTTP/1.1 202 Accepted\r\n"
+              + "Connection: keep-alive\r\n"
+              + "Keep-Alive: timeout=5, max=100\r\n"
+              + "\r\n";
+        // @formatter:on
+        assertEquals(expectedHeader, serHeader.toString());
+
+    }
+
+    @Test
     public void testHttpChannel() throws Exception {
         final HTTP protocol = mock(HTTP.class);
         try (HttpChannel channel = new HttpChannel(protocol)) {
             assertEquals(protocol, channel.getProtocol());
         }
+    }
 
+    @Test
+    public void testProcessMessages_andCloseAfterwardsByProtocol() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
+
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(true);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+
+        this.doProcessMessage();
+
+        assertFalse(this.httpChannel.isOpen());
+    }
+
+    @Test
+    public void testProcessMessages_andCloseAfterwardsByMessageCount() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
+
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 0);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+
+        this.doProcessMessage();
+
+        assertFalse(this.httpChannel.isOpen());
+    }
+
+    @Test
+    public void testProcessMessages_andCloseAfterwardsByTimeOut() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
+
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, -20);
+
+        this.doProcessMessage();
+
+        assertFalse(this.httpChannel.isOpen());
+    }
+
+    @Test
+    public void testProcessMessages_andRemainOpen() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
+
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+
+        this.doProcessMessage();
+
+        assertTrue(this.httpChannel.isOpen());
+    }
+
+    private void doProcessMessage() throws IOException {
+        this.httpChannel.write(this.toByteBuffer("GET / HTTP/1.1\r\n"));
+        this.httpChannel.processMessages();
+        this.httpChannel.read(ByteBuffer.allocate(1024));
     }
 
     private ByteBuffer toByteBuffer(final String rawMessage) {

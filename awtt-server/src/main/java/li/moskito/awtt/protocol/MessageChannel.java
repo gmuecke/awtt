@@ -10,8 +10,12 @@ import java.nio.CharBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
+import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import li.moskito.awtt.protocol.http.HttpProtocolException;
@@ -52,7 +56,12 @@ public abstract class MessageChannel implements ByteChannel {
      */
     private final AtomicBoolean open;
 
-    private final OnMessageReadCallback newMessageCallback;
+    /**
+     * Options map for configuration of the channel
+     */
+    private final Map<MessageChannelOption<?>, Object> options;
+
+    private final Map<Event.Type, Set<ChannelEventListener>> eventSubscriptions;
 
     /**
      * Mode to be used for writing or reading.
@@ -71,28 +80,31 @@ public abstract class MessageChannel implements ByteChannel {
     }
 
     /**
-     * Callback that should be used by implementing classes when a message was parsed from a ByteBuffer in the write
-     * method.
+     * Events with no payload that are fired during the lifecycle of the channel.
      * 
      * @author Gerald
      */
-    protected static class OnMessageReadCallback {
+    public enum LifecycleEvents implements Event<Object>, Event.Type {
+        OUTPUT_QUEUE_EMPTY, ;
 
-        private final MessageChannel channel;
-
-        private OnMessageReadCallback(final MessageChannel channel) {
-            this.channel = channel;
+        @Override
+        public Object getEventData() {
+            return null;
         }
 
-        /**
-         * Invoke this method when a new message has been parsed.
-         * 
-         * @param message
-         *            the new message
-         */
-        public void messageParsed(final Message message) {
-            this.channel.inMessageQueue.offer(message);
+        @Override
+        public Event.Type getType() {
+            return this;
         }
+    }
+
+    /**
+     * Standard event type
+     * 
+     * @author Gerald
+     */
+    public enum ErrorEvents implements Event.Type {
+        PARSE_ERROR, ;
     }
 
     /**
@@ -102,7 +114,8 @@ public abstract class MessageChannel implements ByteChannel {
         this.open = new AtomicBoolean(true);
         this.outMessageQueue = new ConcurrentLinkedQueue<>();
         this.inMessageQueue = new ConcurrentLinkedQueue<>();
-        this.newMessageCallback = new OnMessageReadCallback(this);
+        this.options = new ConcurrentHashMap<>();
+        this.eventSubscriptions = new ConcurrentHashMap<>();
 
     }
 
@@ -123,14 +136,16 @@ public abstract class MessageChannel implements ByteChannel {
             message = this.outMessageQueue.remove();
             mode = Mode.BEGIN;
         } else {
+            this.fireEvent(LifecycleEvents.OUTPUT_QUEUE_EMPTY);
             return -1;
         }
-        final int dataLength = this.writeMessageToBuffer(message, byteBuffer, mode);
 
+        final int dataLength = this.writeMessageToBuffer(message, byteBuffer, mode);
         if (dataLength != -1) {
             this.suspendWriteToBuffer(message);
+        } else if (this.outMessageQueue.isEmpty()) {
+            this.fireEvent(LifecycleEvents.OUTPUT_QUEUE_EMPTY);
         }
-
         return dataLength;
     }
 
@@ -148,7 +163,7 @@ public abstract class MessageChannel implements ByteChannel {
         } else {
             return -1;
         }
-        return this.readMessageFromBuffer(byteBuffer, this.newMessageCallback, mode);
+        return this.readMessageFromBuffer(byteBuffer, mode);
     }
 
     @Override
@@ -158,86 +173,81 @@ public abstract class MessageChannel implements ByteChannel {
 
     @Override
     public void close() throws IOException {
-        this.open.set(false);
+        while (this.open.getAndSet(false)) {
+            try {
+                Thread.sleep(10);
+            } catch (final InterruptedException e) {
+                LOG.debug("Interrupted wait on close", e);
+            }
+        }
     }
+
+    /**
+     * Processes all read messages and by this creates response message that can be read. The processing of the input
+     * messages is delegated to the {@link Protocol} and its process method.
+     * 
+     * @return this channel
+     */
+    public MessageChannel processMessages() {
+        final Protocol protocol = this.getProtocol();
+        while (this.hasMessage()) {
+            final Message response = protocol.process(this.readMessage());
+            if (response != null) {
+                this.write(response);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Sets an option on the channel.
+     * 
+     * @param option
+     *            the option to set
+     * @param value
+     * @throws IllegalArgumentException
+     *             if the option is either not supported by the channel or the value is not compatible with the type of
+     *             the option
+     */
+    public void setOption(final MessageChannelOption<?> option, final Object value) {
+        if (!this.getSupportedOptions().contains(option)) {
+            throw new IllegalArgumentException("Option " + option + " is not supported");
+        }
+        if (!option.type().isAssignableFrom(value.getClass())) {
+            throw new IllegalArgumentException("Option value " + value + " is not of type " + option.type());
+        }
+        this.options.put(option, value);
+    }
+
+    /**
+     * Returns the value of the specified option
+     * 
+     * @param option
+     *            the option for which the value should be returned
+     * @return the value if the option is set of the default value for the option
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T getOption(final MessageChannelOption<T> option) {
+        if (this.options.containsKey(option)) {
+            return (T) this.options.get(option);
+        }
+        return option.getDefault();
+    }
+
+    /**
+     * Returns a set of the options supported by this channel.
+     * 
+     * @return
+     */
+    @SuppressWarnings("rawtypes")
+    public abstract Set<MessageChannelOption> getSupportedOptions();
 
     /**
      * The {@link Protocol} for this message channel.
      * 
      * @return
      */
-    public abstract Protocol getProtocol();
-
-    /**
-     * Suspends the write processes and puts the partially written message on hold. Upon the next read call the message
-     * will be resumed and transferred to the target buffer.
-     * 
-     * @param partialWrittenMessage
-     *            message that has been partially written to the buffer.
-     */
-    protected void suspendWriteToBuffer(final Message partialWrittenMessage) {
-        this.partialWrittenMessage = partialWrittenMessage;
-    }
-
-    /**
-     * @return <code>true</code> when the previous read operation has not been completely fulfilled
-     */
-    public boolean hasPartiallyWrittenMessage() {
-        return this.partialWrittenMessage != null;
-    }
-
-    /**
-     * Discards the last partially read message. The message will be lost.
-     * 
-     * @return the partial message.
-     */
-    protected <T extends Message> T discardPartiallyWrittenMessage() {
-        @SuppressWarnings("unchecked")
-        final T partialMessage = (T) this.partialWrittenMessage;
-        this.partialWrittenMessage = null;
-        return partialMessage;
-    }
-
-    /**
-     * Suspends the read processes and puts the partially read message on hold. Upon the next write call the message
-     * will be resumed.
-     * 
-     * @param partialReadMessage
-     *            the message that has been partially read from the input buffer.
-     */
-    protected void suspendReadFromBuffer(final Message partialReadMessage) {
-        this.partialReadMessage = partialReadMessage;
-    }
-
-    /**
-     * @return <code>true</code> when the previous write operation has not been completely fulfilled
-     */
-    public boolean hasPartiallyReadMessage() {
-        return this.partialReadMessage != null;
-    }
-
-    /**
-     * Discards the last partially written message. The message will be lost.
-     * 
-     * @return the partial message.
-     */
-    protected Message discardPartiallyReadMessage() {
-        final Message partialMessage = this.partialReadMessage;
-        this.partialReadMessage = null;
-        return partialMessage;
-    }
-
-    /**
-     * Puts a message on the output queue. The next read operation will trigger the serialization of the message to a
-     * {@link ByteBuffer}
-     * 
-     * @param message
-     *            the message to be written to the channel
-     */
-    public MessageChannel write(final Message message) {
-        this.outMessageQueue.offer(message);
-        return this;
-    }
+    protected abstract Protocol getProtocol();
 
     /**
      * Checks if there are messages in the input queue that were read from buffer. Prior to this call a message as bytes
@@ -261,6 +271,77 @@ public abstract class MessageChannel implements ByteChannel {
     }
 
     /**
+     * Puts a message on the output queue. The next read operation will trigger the serialization of the message to a
+     * {@link ByteBuffer}
+     * 
+     * @param message
+     *            the message to be written to the channel
+     */
+    public MessageChannel write(final Message message) {
+        this.outMessageQueue.offer(message);
+        return this;
+    }
+
+    /**
+     * @return <code>true</code> when the previous write operation has not been completely fulfilled
+     */
+    public boolean hasPartiallyReadMessage() {
+        return this.partialReadMessage != null;
+    }
+
+    /**
+     * @return <code>true</code> when the previous read operation has not been completely fulfilled
+     */
+    public boolean hasPartiallyWrittenMessage() {
+        return this.partialWrittenMessage != null;
+    }
+
+    /**
+     * Suspends the read processes and puts the partially read message on hold. Upon the next write call the message
+     * will be resumed.
+     * 
+     * @param partialReadMessage
+     *            the message that has been partially read from the input buffer.
+     */
+    protected void suspendReadFromBuffer(final Message partialReadMessage) {
+        this.partialReadMessage = partialReadMessage;
+    }
+
+    /**
+     * Suspends the write processes and puts the partially written message on hold. Upon the next read call the message
+     * will be resumed and transferred to the target buffer.
+     * 
+     * @param partialWrittenMessage
+     *            message that has been partially written to the buffer.
+     */
+    protected void suspendWriteToBuffer(final Message partialWrittenMessage) {
+        this.partialWrittenMessage = partialWrittenMessage;
+    }
+
+    /**
+     * Discards the last partially written message. The message will be lost.
+     * 
+     * @return the partial message.
+     */
+    protected Message discardPartiallyReadMessage() {
+        final Message partialMessage = this.partialReadMessage;
+        this.partialReadMessage = null;
+        return partialMessage;
+    }
+
+    /**
+     * Discards the last partially read message. The message will be lost.
+     * 
+     * @return the partial message.
+     */
+    protected <T extends Message> T discardPartiallyWrittenMessage() {
+        @SuppressWarnings("unchecked")
+        final T partialMessage = (T) this.partialWrittenMessage;
+        this.partialWrittenMessage = null;
+        return partialMessage;
+    }
+
+    /**
      * Reads and parses a message from the given buffer and notifies the callback once the message has been read.
      * 
      * @param byteBuffer
@@ -273,11 +354,10 @@ public abstract class MessageChannel implements ByteChannel {
      *            The message can be obtained by the discardPartiallyReadMessage()
      * @return the number of bytes written to the buffer
      */
-    protected int readMessageFromBuffer(final ByteBuffer src, final OnMessageReadCallback callback, final Mode mode)
-            throws IOException {
+    private int readMessageFromBuffer(final ByteBuffer src, final Mode mode) throws IOException {
         switch (mode) {
             case BEGIN:
-                return this.readMessage(src, callback);
+                return this.readMessage(src);
             case CONTINUE:
                 break;
             default:
@@ -298,17 +378,29 @@ public abstract class MessageChannel implements ByteChannel {
      * @return the number of bytes read or -1 if the entire data has been read
      * @throws IOException
      */
-    protected int readMessage(final ByteBuffer src, final OnMessageReadCallback callback) throws IOException {
+    private int readMessage(final ByteBuffer src) throws IOException {
         final int dataLength = src.limit();
         try {
             final Message message = this.parseMessage(src);
-            callback.messageParsed(message);
+            this.receiveIncomingMessage(message);
         } catch (final ProtocolException e) {
-            throw new IOException(e);
+            LOG.warn("Could not parse request", e);
+            if (this.hasSubscribers(ErrorEvents.PARSE_ERROR)) {
+                this.fireEvent(new BaseEvent<ProtocolException>(ErrorEvents.PARSE_ERROR, e));
+            }
         }
         return src.hasRemaining()
                 ? dataLength
                 : -1;
+    }
+
+    /**
+     * Puts a message into the input queue.
+     * 
+     * @param message
+     */
+    protected void receiveIncomingMessage(final Message message) {
+        this.inMessageQueue.offer(message);
     }
 
     /**
@@ -322,7 +414,7 @@ public abstract class MessageChannel implements ByteChannel {
      *            the mode in which the operation should be performed. See {@link Mode}
      * @return the number of bytes written to the buffer
      */
-    protected int writeMessageToBuffer(final Message message, final ByteBuffer dst, final Mode mode) throws IOException {
+    private int writeMessageToBuffer(final Message message, final ByteBuffer dst, final Mode mode) throws IOException {
         switch (mode) {
             case BEGIN:
                 return this.writeMessage(message, dst);
@@ -414,6 +506,47 @@ public abstract class MessageChannel implements ByteChannel {
         dst.put(buf);
         LOG.debug("Header written, {} Bytes", headerLength);
         return headerLength;
+    }
+
+    /**
+     * Method to check if there are subscribers for a specific event type. If there are no subscribers, the creation of
+     * an event can and should be skipped.
+     * 
+     * @param type
+     *            type to verify
+     * @return <code>true</code> if there are subscribers to the specified event type
+     */
+    protected boolean hasSubscribers(final Event.Type type) {
+        return this.eventSubscriptions.containsKey(type);
+    }
+
+    /**
+     * Event method that is invoked when the output queue is empty and all messages have been transmitted. Default
+     * implementation is empty. Override this method to react on events.
+     */
+    protected void fireEvent(final Event<?> event) {
+        if (this.eventSubscriptions.containsKey(event.getType())) {
+            final Set<ChannelEventListener> listeners = this.eventSubscriptions.get(event.getType());
+            for (final ChannelEventListener listener : listeners) {
+                listener.onEvent(event);
+            }
+        }
+    }
+
+    /**
+     * Creates a subscription for the specified event type. The specified listener will be notified once an event of the
+     * specified type occurred.
+     * 
+     * @param type
+     *            the type to subscribe to
+     * @param listener
+     *            the listener to be notified
+     */
+    public void subscribe(final Event.Type type, final ChannelEventListener listener) {
+        if (!this.eventSubscriptions.containsKey(type)) {
+            this.eventSubscriptions.put(type, new CopyOnWriteArraySet<ChannelEventListener>());
+        }
+        this.eventSubscriptions.get(type).add(listener);
     }
 
     /**
