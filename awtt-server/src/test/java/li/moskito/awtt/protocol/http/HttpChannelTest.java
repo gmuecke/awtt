@@ -216,10 +216,24 @@ public class HttpChannelTest {
     }
 
     @Test
-    public void testProcessMessages_andCloseAfterwardsByProtocol() throws Exception {
+    public void testProcessMessages_andCloseAfterwardsByRequest() throws Exception {
         when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
 
-        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(true);
+        when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(true);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+
+        this.doProcessMessage();
+
+        assertFalse(this.httpChannel.isOpen());
+    }
+
+    @Test
+    public void testProcessMessages_andCloseAfterwardsByResponse() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
+
+        when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(true);
+        when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
 
@@ -232,7 +246,8 @@ public class HttpChannelTest {
     public void testProcessMessages_andCloseAfterwardsByMessageCount() throws Exception {
         when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
 
-        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(false);
+        when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 0);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
 
@@ -245,7 +260,8 @@ public class HttpChannelTest {
     public void testProcessMessages_andCloseAfterwardsByTimeOut() throws Exception {
         when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
 
-        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(false);
+        when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, -20);
 
@@ -258,7 +274,8 @@ public class HttpChannelTest {
     public void testProcessMessages_andRemainOpen() throws Exception {
         when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
 
-        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(false);
+        when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
         this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
 

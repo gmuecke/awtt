@@ -17,6 +17,7 @@ import java.util.TimeZone;
 import li.moskito.awtt.common.Configurable;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
+import li.moskito.awtt.protocol.http.HTTP.ResponseOptions;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -187,41 +188,58 @@ public class HTTPTest {
         final HttpResponse response = HTTP.createResponse(HttpStatusCodes.CONTINUE);
         assertNotNull(response);
         assertEquals(HttpStatusCodes.CONTINUE, response.getHeader().getStatusCode());
+        assertNotNull(response.getHeader().getField(ResponseHeaders.DATE));
+        assertNotNull(response.getHeader().getField(ResponseHeaders.DATE).getValue());
     }
 
     @Test
-            public void testIsCloseOnRequest_http11_close() throws Exception {
-                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
-                final HttpHeaderField connectionField = mock(HttpHeaderField.class);
-                when(connectionField.getValue()).thenReturn("close");
-                when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
-                when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
-        
-                assertTrue(this.http.isCloseOnRequest(this.request));
-            }
+    public void testCreateResponse_withCloseOption() throws Exception {
+        final HttpResponse response = HTTP.createResponse(HttpStatusCodes.CONTINUE, ResponseOptions.FORCE_CLOSE);
+        assertNotNull(response);
+        assertEquals(HttpStatusCodes.CONTINUE, response.getHeader().getStatusCode());
+        assertNotNull(response.getHeader().getField(ResponseHeaders.DATE));
+        assertNotNull(response.getHeader().getField(ResponseHeaders.DATE).getValue());
+
+        assertNotNull(response.getHeader().getField(ResponseHeaders.CONNECTION));
+        assertEquals("close", response.getHeader().getField(ResponseHeaders.CONNECTION).getValue());
+
+        assertNotNull(response.getHeader().getField(ResponseHeaders.CONTENT_LENGTH));
+        assertEquals("0", response.getHeader().getField(ResponseHeaders.CONTENT_LENGTH).getValue());
+    }
 
     @Test
-            public void testIsCloseOnRequest_http11_defaultKeepAlive() throws Exception {
-                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
-                assertFalse(this.http.isCloseOnRequest(this.request));
-            }
+    public void testIsClosedByRequest_http11_close() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+        final HttpHeaderField connectionField = mock(HttpHeaderField.class);
+        when(connectionField.getValue()).thenReturn("close");
+        when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
+        when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
+
+        assertTrue(this.http.isClosedByRequest(this.request));
+    }
 
     @Test
-            public void testIsCloseOnRequest_http10_keepAlive() throws Exception {
-                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
-                final HttpHeaderField connectionField = mock(HttpHeaderField.class);
-                when(connectionField.getValue()).thenReturn("keep-alive");
-                when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
-                when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
-        
-                assertFalse(this.http.isCloseOnRequest(this.request));
-            }
+    public void testIsClosedByRequest_http11_defaultKeepAlive() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+        assertFalse(this.http.isClosedByRequest(this.request));
+    }
 
     @Test
-            public void testIsCloseOnRequest_http10_defaultClose() throws Exception {
-                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
-                assertTrue(this.http.isCloseOnRequest(this.request));
-            }
+    public void testIsClosedByRequest_http10_keepAlive() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
+        final HttpHeaderField connectionField = mock(HttpHeaderField.class);
+        when(connectionField.getValue()).thenReturn("keep-alive");
+        when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
+        when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
+
+        assertFalse(this.http.isClosedByRequest(this.request));
+    }
+
+    @Test
+    public void testIsClosedByRequest_http10_defaultClose() throws Exception {
+        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
+        assertTrue(this.http.isClosedByRequest(this.request));
+    }
 
     @Test
     public void testGetKeepAliverHeaders() throws Exception {

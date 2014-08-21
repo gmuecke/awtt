@@ -66,6 +66,10 @@ public class HTTP implements Protocol, Configurable {
     };
     // @formatter:on
 
+    public static enum ResponseOptions {
+        FORCE_CLOSE, ;
+    }
+
     /**
      * Handlers to process messages of the protocol
      */
@@ -85,7 +89,7 @@ public class HTTP implements Protocol, Configurable {
         } else if (message instanceof HttpResponse) {
             return this.process((HttpResponse) message);
         }
-        return createResponse(HttpStatusCodes.BAD_REQUEST);
+        return createResponse(HttpStatusCodes.BAD_REQUEST, ResponseOptions.FORCE_CLOSE);
     }
 
     /**
@@ -112,7 +116,7 @@ public class HTTP implements Protocol, Configurable {
                 return handler.process(message);
             }
         }
-        return createResponse(HttpStatusCodes.NOT_IMPLEMENTED);
+        return createResponse(HttpStatusCodes.NOT_IMPLEMENTED, ResponseOptions.FORCE_CLOSE);
     }
 
     @Override
@@ -187,10 +191,35 @@ public class HTTP implements Protocol, Configurable {
      * 
      * @param statusCode
      *            the status code for the response
+     * @param options
+     *            options for creating the response. Depending on the option, additional default header fields are added
      * @return
      */
-    public static HttpResponse createResponse(final HttpStatusCodes statusCode) {
-        return new HttpResponse(statusCode);
+    public static HttpResponse createResponse(final HttpStatusCodes statusCode, final ResponseOptions... options) {
+
+        final HttpResponse response = new HttpResponse(statusCode);
+        addMandatoryHeaders(response);
+
+        for (final ResponseOptions option : options) {
+            if (ResponseOptions.FORCE_CLOSE.equals(option)) {
+                response.addField(ResponseHeaders.CONNECTION, "close");
+                response.addField(ResponseHeaders.CONTENT_LENGTH, "0");
+            }
+            // note to self, once there are more options, use a switch statement
+        }
+        return response;
+    }
+
+    /**
+     * Adds header fields to the response that are mandatory for each request
+     * 
+     * @param response
+     *            the response to be enriched
+     * @return the modified response
+     */
+    private static HttpResponse addMandatoryHeaders(final HttpResponse response) {
+        response.addField(ResponseHeaders.DATE, HTTP.toHttpDate(new Date()));
+        return response;
     }
 
     /**
@@ -202,11 +231,22 @@ public class HTTP implements Protocol, Configurable {
      *            the request to be checked
      * @return <code>false</code> if the connection has to be kept alive, <code>true</code> if not
      */
-    boolean isCloseOnRequest(final Message request) {
-        final String connectionField;
+    boolean isClosedByRequest(final Message request) {
         final HttpHeader header = (HttpHeader) request.getHeader();
+        return this.isClosedByHeader(header);
+    }
+
+    /**
+     * The method checks the header for a keep-alive or close information in the connection field.
+     * 
+     * @param header
+     *            the header to check
+     * @return <code>false</code> if the connection has to be kept alive, <code>true</code> if not
+     */
+    boolean isClosedByHeader(final HttpHeader header) {
+        final String connectionField;
         if (header.hasField(RequestHeaders.CONNECTION)) {
-            connectionField = (String) header.getField(RequestHeaders.CONNECTION).getValue();
+            connectionField = header.getField(RequestHeaders.CONNECTION).getValue().toString().toLowerCase();
         } else {
             connectionField = null;
         }

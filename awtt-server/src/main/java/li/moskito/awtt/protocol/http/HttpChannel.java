@@ -23,6 +23,7 @@ import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.MessageChannelOption;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
+import li.moskito.awtt.protocol.http.HTTP.ResponseOptions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +62,8 @@ public class HttpChannel extends MessageChannel {
 
             @Override
             public void onEvent(final Event<?> event) {
-                HttpChannel.this.receiveIncomingMessage(HTTP.createResponse(HttpStatusCodes.BAD_REQUEST));
+                HttpChannel.this.receiveIncomingMessage(HTTP.createResponse(HttpStatusCodes.BAD_REQUEST,
+                        ResponseOptions.FORCE_CLOSE));
             }
         });
 
@@ -229,16 +231,17 @@ public class HttpChannel extends MessageChannel {
 
     @Override
     protected CharBuffer serializeHeader(final Header header) {
+        final HttpHeader httpHeader = (HttpHeader) header;
 
-        //@formatter:off
-        if(!this.closeOnEmptyOutputQueue.get()) {
-            header.addFields(this.protocol.getKeepAliverHeaders(
+        this.closeOnEmptyOutputQueue.compareAndSet(false, this.protocol.isClosedByHeader(httpHeader));
+
+        if (!this.closeOnEmptyOutputQueue.get()) {
+            httpHeader.addFields(this.protocol.getKeepAliverHeaders(
                     this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT),
                     this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES)));
         }
-        //@formatter:on
 
-        return this.serializeHeader((HttpHeader) header);
+        return this.serializeHeader(httpHeader);
     }
 
     /**
@@ -317,7 +320,7 @@ public class HttpChannel extends MessageChannel {
      * @return <code>true</code> if the connection should be kept alive
      */
     private void updateKeepAliveState(final Message request) {
-        final boolean closeOnRequest = this.protocol.isCloseOnRequest(request);
+        final boolean closeOnRequest = this.protocol.isClosedByRequest(request);
         final boolean timeoutReached = this.timeout.get() != -1 && this.timeout.get() < this.getElapsedSeconds();
         final boolean messageLimitReached = this.numMessages.get() <= 0;
         this.closeOnEmptyOutputQueue.set(closeOnRequest || timeoutReached || messageLimitReached);
