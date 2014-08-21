@@ -20,6 +20,7 @@ import li.moskito.awtt.protocol.CustomHeaderFieldDefinition;
 import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.HeaderFieldDefinition;
 import li.moskito.awtt.protocol.Message;
+import li.moskito.awtt.protocol.MessageChannelOptions;
 import li.moskito.awtt.protocol.Protocol;
 
 import org.junit.Before;
@@ -220,8 +221,8 @@ public class HttpChannelTest {
         when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
 
         when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(true);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
 
         this.doProcessMessage();
 
@@ -234,8 +235,8 @@ public class HttpChannelTest {
 
         when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(true);
         when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
 
         this.doProcessMessage();
 
@@ -248,8 +249,8 @@ public class HttpChannelTest {
 
         when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(false);
         when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 0);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 0);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
 
         this.doProcessMessage();
 
@@ -262,8 +263,8 @@ public class HttpChannelTest {
 
         when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(false);
         when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, -20);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, -20);
 
         this.doProcessMessage();
 
@@ -276,8 +277,8 @@ public class HttpChannelTest {
 
         when(this.protocol.isClosedByHeader(this.outMessage.getHeader())).thenReturn(false);
         when(this.protocol.isClosedByRequest(any(Message.class))).thenReturn(false);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
-        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
 
         this.doProcessMessage();
 

@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 public class BlockingConnectionHandler implements ConnectionHandler, Configurable {
 
     /**
-     * 
+     * Configuration parameter for keepAlive, this is the same name as in the HttpChannelOptions!
      */
     private static final String KEEP_ALIVE_TIMEOUT_OPTION = "keepAliveTimeout";
 
@@ -42,10 +42,13 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
     private static final Logger LOG = LoggerFactory.getLogger(BlockingConnectionHandler.class);
 
     /**
-     * 
+     * Configuration parameter for the allowed maximum number of simultaneous connections
      */
     private static final String MAX_CONNECTIONS_OPTION = "maxConnections";
 
+    /**
+     * Default number of maximum connections is 5
+     */
     private static final int DEFAULT_MAX_CONNECTIONS = 5;
 
     private Port port;
@@ -93,7 +96,6 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
                 LOG.debug("Processing connection from {}", client.getRemoteAddress());
 
                 this.setKeepAlive(client);
-
                 // set to blocking
                 client.configureBlocking(true);
                 // dispatch the incoming connection to the thread pool
@@ -169,6 +171,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
      */
     private MessageChannel openMessageChannel() {
         final MessageChannel serverChannel = this.port.getProtocol().openChannel();
+        // pass the connection option to the message channel, if they are supported
         for (final MessageChannelOption<?> option : serverChannel.getSupportedOptions()) {
             if (this.connectionOptions.containsKey(option.name())) {
                 serverChannel.setOption(option, option.fromString(this.connectionOptions.get(option.name())));
@@ -193,7 +196,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
 
     @Override
     public void configure(final HierarchicalConfiguration config) throws ConfigurationException {
-        // set defaults
+        // set defaults (as strings so they can be overriden by values from configuration)
         this.connectionOptions.put(MAX_CONNECTIONS_OPTION, Integer.toString(DEFAULT_MAX_CONNECTIONS));
         // override default with settings from configuration
         for (final Iterator<String> keyIt = config.getKeys(); keyIt.hasNext();) {

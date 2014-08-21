@@ -9,6 +9,8 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -21,6 +23,7 @@ import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.MessageChannelOption;
+import li.moskito.awtt.protocol.MessageChannelOptions;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
 import li.moskito.awtt.protocol.http.HTTP.ResponseOptions;
@@ -51,6 +54,20 @@ public class HttpChannel extends MessageChannel {
     private final AtomicBoolean closeOnEmptyOutputQueue = new AtomicBoolean(false);
 
     private final AtomicBoolean initialized = new AtomicBoolean(false);
+
+    /**
+     * Set of the options supported by HTTP
+     */
+    @SuppressWarnings("rawtypes")
+    private static final Set<MessageChannelOption> SUPPORTED_OPTIONS;
+
+    static {
+        @SuppressWarnings("rawtypes")
+        final Set<MessageChannelOption> set = new HashSet<>();
+        set.add(MessageChannelOptions.KEEP_ALIVE_TIMEOUT);
+        set.add(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES);
+        SUPPORTED_OPTIONS = Collections.unmodifiableSet(set);
+    }
 
     /**
      * @param protocol
@@ -90,7 +107,7 @@ public class HttpChannel extends MessageChannel {
     @SuppressWarnings("rawtypes")
     @Override
     public Set<MessageChannelOption> getSupportedOptions() {
-        return HttpChannelOptions.SUPPORTED_OPTIONS;
+        return SUPPORTED_OPTIONS;
     }
 
     @Override
@@ -237,8 +254,8 @@ public class HttpChannel extends MessageChannel {
 
         if (!this.closeOnEmptyOutputQueue.get()) {
             httpHeader.addFields(this.protocol.getKeepAliverHeaders(
-                    this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT),
-                    this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES)));
+                    this.getOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT),
+                    this.getOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES)));
         }
 
         return this.serializeHeader(httpHeader);
@@ -270,8 +287,8 @@ public class HttpChannel extends MessageChannel {
      */
     private void checkAndInitializeState() {
         if (this.initialized.compareAndSet(false, true)) {
-            this.timeout.set(this.getElapsedSeconds() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT));
-            this.numMessages.set(this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES));
+            this.timeout.set(this.getElapsedSeconds() + this.getOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT));
+            this.numMessages.set(this.getOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES));
         }
     }
 
@@ -296,7 +313,7 @@ public class HttpChannel extends MessageChannel {
      * Sets or Resets the message count before the connection terminates
      */
     private void decreaseMessageCount() {
-        if (this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES) != -1) {
+        if (this.getOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES) != -1) {
             this.numMessages.decrementAndGet();
         }
     }
@@ -305,8 +322,8 @@ public class HttpChannel extends MessageChannel {
      * Updates the time when the current connection times out.
      */
     private void resetTimeout() {
-        if (this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT) != -1) {
-            this.timeout.set(this.getElapsedSeconds() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT));
+        if (this.getOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT) != -1) {
+            this.timeout.set(this.getElapsedSeconds() + this.getOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT));
         }
     }
 
