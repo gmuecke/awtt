@@ -3,6 +3,7 @@ package li.moskito.awtt.server;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,11 +14,10 @@ import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
-import java.util.Set;
 
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.MessageChannelOption;
-import li.moskito.awtt.protocol.http.HttpChannelOptions;
+import li.moskito.awtt.protocol.MessageChannelOptions;
 
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.junit.Before;
@@ -39,15 +39,25 @@ public class BlockingConnectionHandlerTest {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Port port;
+    @Mock
+    private MessageChannel mockChannel;
+
     private BlockingConnectionHandler subject;
+
+    @SuppressWarnings("rawtypes")
+    private HashSet<MessageChannelOption> supportedOptions;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(this.port.getHostname()).thenReturn(InetAddress.getLoopbackAddress());
         when(this.port.getPortNumber()).thenReturn(TEST_PORT);
+        when(this.port.getProtocol().openChannel()).thenReturn(this.mockChannel);
         this.subject = new BlockingConnectionHandler();
         this.subject.configure(new HierarchicalConfiguration());
+
+        this.supportedOptions = new HashSet<>();
+        when(this.mockChannel.getSupportedOptions()).thenReturn(this.supportedOptions);
 
         this.waitForPortAvailability();
     }
@@ -77,9 +87,11 @@ public class BlockingConnectionHandlerTest {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testRun_portBound() throws Exception {
         this.subject.bind(this.port);
+        when(this.mockChannel.getOption(any(MessageChannelOption.class))).thenReturn(Integer.valueOf(20));
 
         final Thread subjectThread = new Thread(this.subject);
         subjectThread.start();
@@ -92,14 +104,12 @@ public class BlockingConnectionHandlerTest {
         clientConnection.close();
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings("unchecked")
     @Test
     public void testRun_setChannelOptions() throws Exception {
-        final Set<MessageChannelOption> supportedOptions = new HashSet<>();
-        supportedOptions.add(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES);
-        supportedOptions.add(HttpChannelOptions.KEEP_ALIVE_TIMEOUT);
-        final MessageChannel mockChannel = this.port.getProtocol().openChannel();
-        when(mockChannel.getSupportedOptions()).thenReturn(supportedOptions);
+        this.supportedOptions.add(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES);
+        this.supportedOptions.add(MessageChannelOptions.KEEP_ALIVE_TIMEOUT);
+        when(this.mockChannel.getOption(any(MessageChannelOption.class))).thenReturn(Integer.valueOf(20));
 
         final HierarchicalConfiguration conf = new HierarchicalConfiguration();
         conf.addProperty("maxConnections", "1");
@@ -118,9 +128,9 @@ public class BlockingConnectionHandlerTest {
         clientConnection.close();
 
         // keep alive was configured and is therefore passed to the channel
-        verify(mockChannel).setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, Integer.valueOf(5));
+        verify(this.mockChannel).setOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, Integer.valueOf(5));
         // was not configured
-        verify(mockChannel, times(0)).setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, Integer.valueOf(5));
+        verify(this.mockChannel, times(0)).setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, Integer.valueOf(5));
 
     }
 
@@ -134,10 +144,12 @@ public class BlockingConnectionHandlerTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testRun_handlerClosed() throws Exception {
         this.subject.bind(this.port);
         this.subject.close();
+        when(this.mockChannel.getOption(any(MessageChannelOption.class))).thenReturn(Integer.valueOf(20));
 
         final Thread subjectThread = new Thread(this.subject);
         subjectThread.start();
