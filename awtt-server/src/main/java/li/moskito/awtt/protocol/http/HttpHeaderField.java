@@ -37,9 +37,4 @@ public class HttpHeaderField extends HeaderField {
     public String getValue() {
         return (String) super.getValue();
     }
-
-    @Override
-    public void setValue(final Object value) {
-        this.setValue(value);
-    }
 }

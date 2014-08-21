@@ -190,38 +190,38 @@ public class HTTPTest {
     }
 
     @Test
-    public void testCloseChannelOnCompletion_http11_close() throws Exception {
-        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
-        final HttpHeaderField connectionField = mock(HttpHeaderField.class);
-        when(connectionField.getValue()).thenReturn("close");
-        when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
-        when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
-
-        assertTrue(this.http.closeChannelOnCompletion(this.request));
-    }
-
-    @Test
-    public void testCloseChannelOnCompletion_http11_defaultKeepAlive() throws Exception {
-        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
-        assertFalse(this.http.closeChannelOnCompletion(this.request));
-    }
+            public void testIsCloseOnRequest_http11_close() throws Exception {
+                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+                final HttpHeaderField connectionField = mock(HttpHeaderField.class);
+                when(connectionField.getValue()).thenReturn("close");
+                when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
+                when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
+        
+                assertTrue(this.http.isCloseOnRequest(this.request));
+            }
 
     @Test
-    public void testCloseChannelOnCompletion_http10_keepAlive() throws Exception {
-        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
-        final HttpHeaderField connectionField = mock(HttpHeaderField.class);
-        when(connectionField.getValue()).thenReturn("keep-alive");
-        when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
-        when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
-
-        assertFalse(this.http.closeChannelOnCompletion(this.request));
-    }
+            public void testIsCloseOnRequest_http11_defaultKeepAlive() throws Exception {
+                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
+                assertFalse(this.http.isCloseOnRequest(this.request));
+            }
 
     @Test
-    public void testCloseChannelOnCompletion_http10_defaultClose() throws Exception {
-        when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
-        assertTrue(this.http.closeChannelOnCompletion(this.request));
-    }
+            public void testIsCloseOnRequest_http10_keepAlive() throws Exception {
+                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
+                final HttpHeaderField connectionField = mock(HttpHeaderField.class);
+                when(connectionField.getValue()).thenReturn("keep-alive");
+                when(this.request.getHeader().hasField(RequestHeaders.CONNECTION)).thenReturn(true);
+                when(this.request.getHeader().getField(RequestHeaders.CONNECTION)).thenReturn(connectionField);
+        
+                assertFalse(this.http.isCloseOnRequest(this.request));
+            }
+
+    @Test
+            public void testIsCloseOnRequest_http10_defaultClose() throws Exception {
+                when(this.request.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_0);
+                assertTrue(this.http.isCloseOnRequest(this.request));
+            }
 
     @Test
     public void testGetKeepAliverHeaders() throws Exception {

@@ -9,6 +9,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -24,21 +25,27 @@ import li.moskito.awtt.protocol.Protocol;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HttpChannelTest {
+
     @Mock
     private HTTP protocol;
-    @InjectMocks
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private HttpResponse outMessage;
+
     private HttpChannel httpChannel;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        when(this.outMessage.getCharset()).thenReturn(HTTP.CHARSET);
+        when(this.outMessage.getBody()).thenReturn(null);
+        this.httpChannel = new HttpChannel(this.protocol);
     }
 
     @Test
@@ -209,25 +216,61 @@ public class HttpChannelTest {
     }
 
     @Test
-    public void testProcessMessages_andCloseAfterwards() throws Exception {
-        when(this.protocol.closeChannelOnCompletion(any(Message.class))).thenReturn(true);
+    public void testProcessMessages_andCloseAfterwardsByProtocol() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
 
-        this.httpChannel.write(this.toByteBuffer("GET / HTTP/1.1"));
-        this.httpChannel.processMessages();
-        this.httpChannel.read(ByteBuffer.allocate(2014));
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(true);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+
+        this.doProcessMessage();
+
+        assertFalse(this.httpChannel.isOpen());
+    }
+
+    @Test
+    public void testProcessMessages_andCloseAfterwardsByMessageCount() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
+
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 0);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+
+        this.doProcessMessage();
+
+        assertFalse(this.httpChannel.isOpen());
+    }
+
+    @Test
+    public void testProcessMessages_andCloseAfterwardsByTimeOut() throws Exception {
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
+
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, -20);
+
+        this.doProcessMessage();
 
         assertFalse(this.httpChannel.isOpen());
     }
 
     @Test
     public void testProcessMessages_andRemainOpen() throws Exception {
-        when(this.protocol.closeChannelOnCompletion(any(Message.class))).thenReturn(false);
+        when(this.protocol.process(any(Message.class))).thenReturn(this.outMessage);
 
-        this.httpChannel.read(this.toByteBuffer("GET / HTTP/1.1"));
-        this.httpChannel.processMessages();
-        this.httpChannel.write(ByteBuffer.allocate(2014));
+        when(this.protocol.isCloseOnRequest(any(Message.class))).thenReturn(false);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES, 100);
+        this.httpChannel.setOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT, 20);
+
+        this.doProcessMessage();
 
         assertTrue(this.httpChannel.isOpen());
+    }
+
+    private void doProcessMessage() throws IOException {
+        this.httpChannel.write(this.toByteBuffer("GET / HTTP/1.1\r\n"));
+        this.httpChannel.processMessages();
+        this.httpChannel.read(ByteBuffer.allocate(1024));
     }
 
     private ByteBuffer toByteBuffer(final String rawMessage) {

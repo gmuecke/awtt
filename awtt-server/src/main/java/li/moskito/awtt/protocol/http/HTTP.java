@@ -202,7 +202,7 @@ public class HTTP implements Protocol, Configurable {
      *            the request to be checked
      * @return <code>false</code> if the connection has to be kept alive, <code>true</code> if not
      */
-    boolean closeChannelOnCompletion(final Message request) {
+    boolean isCloseOnRequest(final Message request) {
         final String connectionField;
         final HttpHeader header = (HttpHeader) request.getHeader();
         if (header.hasField(RequestHeaders.CONNECTION)) {
@@ -216,7 +216,7 @@ public class HTTP implements Protocol, Configurable {
             case HTTP_1_1:
                 return "close".equals(connectionField);
             default:
-                return false;
+                return true;
         }
     }
 

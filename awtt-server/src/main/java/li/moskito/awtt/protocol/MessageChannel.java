@@ -173,7 +173,13 @@ public abstract class MessageChannel implements ByteChannel {
 
     @Override
     public void close() throws IOException {
-        this.open.set(false);
+        while (this.open.getAndSet(false)) {
+            try {
+                Thread.sleep(10);
+            } catch (final InterruptedException e) {
+                LOG.debug("Interrupted wait on close", e);
+            }
+        }
     }
 
     /**

@@ -28,6 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicBoolean;
+import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicInteger;
+import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Gerald
@@ -41,11 +43,13 @@ public class HttpChannel extends MessageChannel {
 
     private final HTTP protocol;
 
-    private long timeout;
+    private final AtomicLong timeout = new AtomicLong();
 
-    private int numMessages;
+    private final AtomicInteger numMessages = new AtomicInteger();
 
     private final AtomicBoolean closeOnEmptyOutputQueue = new AtomicBoolean(false);
+
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     /**
      * @param protocol
@@ -53,9 +57,6 @@ public class HttpChannel extends MessageChannel {
     public HttpChannel(final HTTP protocol) {
         super();
         this.protocol = protocol;
-        this.timeout = System.currentTimeMillis() + HttpChannelOptions.KEEP_ALIVE_TIMEOUT.getDefault();
-        this.numMessages = HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES.getDefault();
-
         this.subscribe(ErrorEvents.PARSE_ERROR, new ChannelEventListener() {
 
             @Override
@@ -69,6 +70,7 @@ public class HttpChannel extends MessageChannel {
             public void onEvent(final Event<?> event) {
                 if (HttpChannel.this.closeOnEmptyOutputQueue.get()) {
                     try {
+                        LOG.debug("Closing channel");
                         HttpChannel.this.close();
                     } catch (final IOException e) {
                         LOG.warn("Error during closing of channel", e);
@@ -91,6 +93,7 @@ public class HttpChannel extends MessageChannel {
 
     @Override
     protected HttpMessage parseMessage(final ByteBuffer src) throws ProtocolException, IOException {
+        this.checkAndInitializeState();
         return this.parseMessage(HTTP.CHARSET.decode(src));
     }
 
@@ -113,11 +116,7 @@ public class HttpChannel extends MessageChannel {
         final List<HttpHeaderField> fields = this.parseFields(charBuffer);
         result.getHeader().addHttpHeaderFields(fields);
 
-        if (!this.isKeepAlive(result)) {
-            this.closeOnEmptyOutputQueue.set(true);
-        }
-        this.updateTimeout();
-        this.updateMessageCount();
+        this.updateState(result);
 
         return result;
     }
@@ -263,23 +262,49 @@ public class HttpChannel extends MessageChannel {
     }
 
     /**
+     * Check if the channel has been initialized and initialize it if not. The initialization is done be setting initial
+     * timeout and message count with the values from the channel options (if not set, defaults are used).
+     */
+    private void checkAndInitializeState() {
+        if (this.initialized.compareAndSet(false, true)) {
+            this.timeout.set(this.getElapsedSeconds() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT));
+            this.numMessages.set(this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES));
+        }
+    }
+
+    /**
+     * Updates the internal state depending on the current request. The message count updated, the timeout will be
+     * reset. The request may require to close the channel afterwards, or the message limit has been reached or the
+     * timeout has been reached.
+     * 
+     * @param currentRequest
+     */
+    private void updateState(final HttpRequest currentRequest) {
+        // first update the message count
+        this.decreaseMessageCount();
+        // determine whether to close the connection based on parameters of the request, the current (updated) message
+        // count and the current (not yet updated) timeout counter
+        this.updateKeepAliveState(currentRequest);
+        // reset the timeout
+        this.resetTimeout();
+    }
+
+    /**
      * Sets or Resets the message count before the connection terminates
      */
-    private void updateMessageCount() {
+    private void decreaseMessageCount() {
         if (this.getOption(HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES) != -1) {
-            if (this.numMessages > 0) {
-                this.numMessages--;
-            } else {
-                this.numMessages = HttpChannelOptions.KEEP_ALIVE_MAX_MESSAGES.getDefault();
-            }
+            this.numMessages.decrementAndGet();
         }
     }
 
     /**
      * Updates the time when the current connection times out.
      */
-    private void updateTimeout() {
-        this.timeout = System.currentTimeMillis() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT) * 1000;
+    private void resetTimeout() {
+        if (this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT) != -1) {
+            this.timeout.set(this.getElapsedSeconds() + this.getOption(HttpChannelOptions.KEEP_ALIVE_TIMEOUT));
+        }
     }
 
     /**
@@ -291,11 +316,21 @@ public class HttpChannel extends MessageChannel {
      *            the request containing possibly information from the information how to handle the connection
      * @return <code>true</code> if the connection should be kept alive
      */
-    private boolean isKeepAlive(final Message request) {
-        final boolean keepAlive = !this.protocol.closeChannelOnCompletion(request);
-        final boolean timeoutReached = this.timeout < System.currentTimeMillis();
-        final boolean messageLimitReached = this.numMessages == 0;
-        return keepAlive && !timeoutReached && !messageLimitReached;
+    private void updateKeepAliveState(final Message request) {
+        final boolean closeOnRequest = this.protocol.isCloseOnRequest(request);
+        final boolean timeoutReached = this.timeout.get() != -1 && this.timeout.get() < this.getElapsedSeconds();
+        final boolean messageLimitReached = this.numMessages.get() <= 0;
+        this.closeOnEmptyOutputQueue.set(closeOnRequest || timeoutReached || messageLimitReached);
+    }
+
+    /**
+     * Returns a timer of seconds of the JVMs lifetime. This does not refer to a system time and is based on the
+     * System.nanoTime()
+     * 
+     * @return
+     */
+    private long getElapsedSeconds() {
+        return System.nanoTime() / 1_000_000_000;
     }
 
 }
