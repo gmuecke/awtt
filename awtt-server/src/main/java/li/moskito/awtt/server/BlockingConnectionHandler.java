@@ -93,7 +93,7 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
                 // wait for incoming connections
                 final SocketChannel client = serverSocketChannel.accept();
 
-                LOG.debug("Processing connection from {}", client.getRemoteAddress());
+                LOG.debug("Dispatching connection from {}", client.getRemoteAddress());
 
                 this.setKeepAlive(client);
                 // set to blocking

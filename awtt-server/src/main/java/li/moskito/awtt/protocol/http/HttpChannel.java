@@ -258,6 +258,7 @@ public class HttpChannel extends MessageChannel {
                     this.getOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES)));
         }
 
+        this.protocol.logResponseLine(httpHeader);
         return this.serializeHeader(httpHeader);
     }
 

@@ -110,6 +110,7 @@ public class HTTP implements Protocol, Configurable {
      * @return
      */
     public HttpResponse process(final HttpRequest message) {
+        this.logRequestLine(message.getHeader());
         LOG.debug("Processing Request\n{}", message);
         for (final HttpProtocolHandler handler : this.handlers) {
             if (handler.accepts(message)) {
@@ -277,6 +278,26 @@ public class HTTP implements Protocol, Configurable {
                 String.format("timeout=%s, max=%s", timeout, maxConnections)));
         // @formatter:on
         return keepAliveHeader;
+    }
+
+    /**
+     * Creates a string with the 1st request line
+     * 
+     * @param header
+     * @return
+     */
+    void logRequestLine(final HttpHeader header) {
+        LOG.info("REQ: {} {} {}", header.getCommand(), header.getResource(), header.getVersion());
+    }
+
+    /**
+     * Writes the 1st response line to the log
+     * 
+     * @param header
+     * @return
+     */
+    void logResponseLine(final HttpHeader header) {
+        LOG.info("RSP: {} {}", header.getVersion(), header.getStatusCode());
     }
 
     /**

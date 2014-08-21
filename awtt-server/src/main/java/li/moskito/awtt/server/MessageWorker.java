@@ -64,6 +64,7 @@ public class MessageWorker implements Runnable {
         final ConnectionTimeout timeout = new ConnectionTimeout(Thread.currentThread(), this.keepAliveTimeout);
 
         try {
+            LOG.info("Connection from {}", this.clientChannel.getRemoteAddress());
             while (this.channelsOpen() && this.receiveMessage(timeout)) {
                 // process the messages
                 this.serverChannel.processMessages();
@@ -71,11 +72,15 @@ public class MessageWorker implements Runnable {
                 Channels.stream(this.serverChannel, this.clientChannel);
             }
 
+        } catch (final ClosedByInterruptException e) {
+            LOG.debug("Connection terminated by timeout", e);
         } catch (final IOException e) {
             LOG.error("Error processing request", e);
         } finally {
             this.closeChannels();
         }
+
+        LOG.debug("Connection closed");
     }
 
     /**
