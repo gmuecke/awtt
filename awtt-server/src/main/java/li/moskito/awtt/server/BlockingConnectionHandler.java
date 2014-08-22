@@ -174,7 +174,9 @@ public class BlockingConnectionHandler implements ConnectionHandler, Configurabl
         // pass the connection option to the message channel, if they are supported
         for (final MessageChannelOption<?> option : serverChannel.getSupportedOptions()) {
             if (this.connectionOptions.containsKey(option.name())) {
-                serverChannel.setOption(option, option.fromString(this.connectionOptions.get(option.name())));
+                final Object optionValue = option.fromString(this.connectionOptions.get(option.name()));
+                LOG.debug("Setting channel option {} to {}", option, optionValue);
+                serverChannel.setOption(option, optionValue);
             }
         }
         return serverChannel;
