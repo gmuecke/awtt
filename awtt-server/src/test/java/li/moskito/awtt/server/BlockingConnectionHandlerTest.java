@@ -124,7 +124,7 @@ public class BlockingConnectionHandlerTest {
 
         final HierarchicalConfiguration conf = new HierarchicalConfiguration();
         conf.addProperty("maxConnections", "1");
-        conf.addProperty("keepAliveTimeout", "5");
+        conf.addProperty(MessageChannelOptions.KEEP_ALIVE_TIMEOUT.name(), "5");
         this.subject.configure(conf);
         this.subject.bind(this.port);
 
@@ -139,7 +139,7 @@ public class BlockingConnectionHandlerTest {
         clientConnection.close();
 
         // keep alive was configured and is therefore passed to the channel
-        final ArgumentCaptor<Integer> valueCaptor = ArgumentCaptor.forClass(Integer.class);
+        final ArgumentCaptor<Object> valueCaptor = ArgumentCaptor.forClass(Object.class);
         final ArgumentCaptor<MessageChannelOption> optionCaptor = ArgumentCaptor.forClass(MessageChannelOption.class);
 
         verify(this.mockChannel).getSupportedOptions();
