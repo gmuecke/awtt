@@ -1,5 +1,6 @@
 package li.moskito.awtt.server;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -23,6 +24,7 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
@@ -104,7 +106,9 @@ public class BlockingConnectionHandlerTest {
         clientConnection.close();
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({
+            "unchecked", "rawtypes"
+    })
     @Test
     public void testRun_setChannelOptions() throws Exception {
         this.supportedOptions.add(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES);
@@ -128,7 +132,11 @@ public class BlockingConnectionHandlerTest {
         clientConnection.close();
 
         // keep alive was configured and is therefore passed to the channel
-        verify(this.mockChannel).setOption(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, Integer.valueOf(5));
+        final ArgumentCaptor<Integer> valueCaptor = ArgumentCaptor.forClass(Integer.class);
+        final ArgumentCaptor<MessageChannelOption> optionCaptor = ArgumentCaptor.forClass(MessageChannelOption.class);
+        verify(this.mockChannel).setOption(optionCaptor.capture(), valueCaptor.capture());
+        assertEquals(Integer.valueOf(5), valueCaptor.getValue());
+        assertEquals(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, optionCaptor.getValue());
         // was not configured
         verify(this.mockChannel, times(0)).setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, Integer.valueOf(5));
 
