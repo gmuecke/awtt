@@ -24,7 +24,6 @@ import li.moskito.awtt.protocol.Protocol;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -40,7 +39,7 @@ public class BlockingConnectionHandlerTest {
 
     private static final int TEST_PORT = 55000;
 
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    @Mock
     private Port port;
     @Mock
     private Protocol protocol;
@@ -142,7 +141,6 @@ public class BlockingConnectionHandlerTest {
         final ArgumentCaptor<Object> valueCaptor = ArgumentCaptor.forClass(Object.class);
         final ArgumentCaptor<MessageChannelOption> optionCaptor = ArgumentCaptor.forClass(MessageChannelOption.class);
 
-        verify(this.mockChannel).getSupportedOptions();
         verify(this.mockChannel).setOption(optionCaptor.capture(), valueCaptor.capture());
         assertEquals(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, optionCaptor.getValue());
         assertEquals(Integer.valueOf(5), valueCaptor.getValue());
