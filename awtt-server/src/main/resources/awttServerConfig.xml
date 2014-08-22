@@ -5,7 +5,7 @@
 			<handler class="li.moskito.awtt.server.http.StaticFileContentRequestHandler">
 				<!-- BEGIN Handler specific configuration -->	
 				<!-- Location (as URI) that contains the files to be hosted -->
-				<contentRoot>file:/C:/http/template</contentRoot>
+				<contentRoot>file:///http/htdocs</contentRoot>
 				<indexFile>index.html</indexFile>
 				<!-- ContentType - FileExtension mapping -->
 				<contentTypes>
