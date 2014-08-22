@@ -1,7 +1,6 @@
 package li.moskito.awtt.server;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -15,6 +14,10 @@ import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.MessageChannelOption;
@@ -52,6 +55,8 @@ public class BlockingConnectionHandlerTest {
     @SuppressWarnings("rawtypes")
     private HashSet<MessageChannelOption> supportedOptions;
 
+    private ExecutorService executorService;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -60,6 +65,8 @@ public class BlockingConnectionHandlerTest {
         when(this.port.getProtocol()).thenReturn(this.protocol);
         when(this.protocol.openChannel()).thenReturn(this.mockChannel);
 
+        this.executorService = Executors.newFixedThreadPool(1);
+
         this.subject = new BlockingConnectionHandler();
         this.subject.configure(new HierarchicalConfiguration());
 
@@ -67,6 +74,13 @@ public class BlockingConnectionHandlerTest {
         when(this.mockChannel.getSupportedOptions()).thenReturn(this.supportedOptions);
 
         this.waitForPortAvailability();
+    }
+
+    @Test
+    public void tearDown() throws Exception {
+        this.executorService.shutdown();
+        this.executorService.awaitTermination(5, TimeUnit.SECONDS);
+        this.executorService.shutdownNow();
     }
 
     private void waitForPortAvailability() throws InterruptedException {
@@ -94,21 +108,24 @@ public class BlockingConnectionHandlerTest {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({
+            "unchecked", "rawtypes"
+    })
     @Test
     public void testRun_portBound() throws Exception {
         this.subject.bind(this.port);
         when(this.mockChannel.getOption(any(MessageChannelOption.class))).thenReturn(Integer.valueOf(20));
 
-        final Thread subjectThread = new Thread(this.subject);
-        subjectThread.start();
+        this.executorService.submit(this.subject);
         Thread.sleep(200);
 
         final SocketAddress address = new InetSocketAddress("localhost", TEST_PORT);
         final SocketChannel clientConnection = SocketChannel.open(address);
         assertTrue(clientConnection.isConnected());
+
         this.subject.close();
         clientConnection.close();
+
     }
 
     @SuppressWarnings({
@@ -127,8 +144,7 @@ public class BlockingConnectionHandlerTest {
         this.subject.configure(conf);
         this.subject.bind(this.port);
 
-        final Thread subjectThread = new Thread(this.subject);
-        subjectThread.start();
+        this.executorService.submit(this.subject);
         Thread.sleep(200);
 
         final SocketAddress address = new InetSocketAddress("localhost", TEST_PORT);
@@ -166,10 +182,10 @@ public class BlockingConnectionHandlerTest {
         this.subject.close();
         when(this.mockChannel.getOption(any(MessageChannelOption.class))).thenReturn(Integer.valueOf(20));
 
-        final Thread subjectThread = new Thread(this.subject);
-        subjectThread.start();
+        @SuppressWarnings("rawtypes")
+        final Future future = this.executorService.submit(this.subject);
         Thread.sleep(250);
-        assertFalse(subjectThread.isAlive()); // subject should have finished by now
+        assertTrue(future.isDone()); // subject should have finished by now
 
     }
 
