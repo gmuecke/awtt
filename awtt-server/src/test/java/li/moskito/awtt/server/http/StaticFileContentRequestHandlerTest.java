@@ -94,10 +94,10 @@ public class StaticFileContentRequestHandlerTest {
     }
 
     @Test
-    public void testAccepts_nonExistingResource_reject() throws Exception {
+    public void testAccepts_nonExistingResource_accept() throws Exception {
         this.setupCommand(HttpCommands.GET);
         this.setupResource("trallala");
-        assertFalse(this.subject.accepts(this.httpRequest));
+        assertTrue(this.subject.accepts(this.httpRequest));
     }
 
     @Test
@@ -192,6 +192,8 @@ public class StaticFileContentRequestHandlerTest {
         // assert
         assertNotNull(httpResponse);
         this.assertStatus(HttpStatusCodes.NOT_FOUND, httpResponse);
+        this.assertHeaderField("close", httpResponse, ResponseHeaders.CONNECTION);
+        this.assertHeaderField("0", httpResponse, ResponseHeaders.CONTENT_LENGTH);
     }
 
     @Test

@@ -3,8 +3,6 @@
  */
 package li.moskito.awtt.protocol;
 
-import java.util.List;
-
 
 /**
  * A protocol defines a set of Messages to be exchanged between two communication partners and the semantic how those
@@ -38,22 +36,4 @@ public interface Protocol {
      */
     Message process(Message message);
 
-    /**
-     * Determines if the channels should be closed after the request has been processed
-     * 
-     * @param request
-     *            the request that might contain information from the client whether to keep the connection open or no
-     * @return <code>true</code> if the channels should be closed after the request, <code>false</code> if they should
-     *         remain open
-     */
-    boolean isCloseChannelsAfterProcess(Message request);
-
-    /**
-     * Creates keep alive header information using the specified parameters
-     * 
-     * @param connectionControl
-     * @return a list of header fields that can be added to a response in order to inform the receiver on how to handle
-     *         the connection
-     */
-    List<HeaderField> getKeepAliverHeaders(ConnectionAttributes connectionControl);
 }

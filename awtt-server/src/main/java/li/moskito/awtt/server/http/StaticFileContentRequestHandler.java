@@ -27,6 +27,7 @@ import li.moskito.awtt.common.Configurable;
 import li.moskito.awtt.protocol.BinaryBody;
 import li.moskito.awtt.protocol.http.ContentType;
 import li.moskito.awtt.protocol.http.HTTP;
+import li.moskito.awtt.protocol.http.HTTP.ResponseOptions;
 import li.moskito.awtt.protocol.http.HttpCommands;
 import li.moskito.awtt.protocol.http.HttpHeader;
 import li.moskito.awtt.protocol.http.HttpMessage;
@@ -95,6 +96,19 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
         return commandSupported && resourceValid;
     }
 
+    @Override
+    protected HttpResponse onGet(final HttpRequest httpRequest) {
+        final URI resource = httpRequest.getResource();
+        LOG.debug("Requested to read resource {}", resource);
+        final Path resourcePath = this.resolveFileResource(resource);
+
+        if (Files.isRegularFile(resourcePath)) {
+            return this.createResponse(httpRequest, resourcePath);
+        } else {
+            return HTTP.createResponse(HttpStatusCodes.NOT_FOUND, ResponseOptions.FORCE_CLOSE);
+        }
+    }
+
     /**
      * Checks if the the URI points to a valid and existing file resource. If the resource points to a directory it is
      * still valid if the directory contains an index file
@@ -104,32 +118,20 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
      * @return <code>true</code> if the resource points to a file or a directory with an index file
      */
     private boolean isFileResource(final URI resourceId) {
-        final Path resourcePath = this.resolveResource(resourceId);
-        return resourcePath != null && Files.isRegularFile(resourcePath);
-    }
-
-    @Override
-    protected HttpResponse onGet(final HttpRequest httpRequest) {
-        final URI resource = httpRequest.getResource();
-        LOG.debug("Requested to read resource {}", resource);
-        final Path resourcePath = this.resolveResource(resource);
-
-        if (resourcePath == null) {
-            return new HttpResponse(HttpStatusCodes.NOT_FOUND);
-        }
-        return this.createResponse(httpRequest, resourcePath);
+        final Path resourcePath = this.resolveFileResource(resourceId);
+        return resourcePath != null && (Files.isRegularFile(resourcePath) || !resourceId.getPath().endsWith("/"));
     }
 
     /**
-     * Resolves the URI resource to a local files system resource that is identified by its {@link Path}
+     * Resolves the URI resource to a local file resource that is identified by its {@link Path}
      * 
      * @param resource
      *            the resource to be resolved
      * @return the {@link Path} pointing to the local file or directory
      */
-    private Path resolveResource(final URI resource) {
+    private Path resolveFileResource(final URI resource) {
         final Path resourcePath = this.normalizeResourcePath(resource);
-        return this.resolveFilesystemResourcePath(resourcePath);
+        return this.resolveFileResourcePath(resourcePath);
     }
 
     /**
@@ -141,15 +143,13 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
      * @return the path to an existing resource in the filesystem. The resource is either a concrete file or a
      *         directory.
      */
-    private Path resolveFilesystemResourcePath(final Path resourcePath) {
+    private Path resolveFileResourcePath(final Path resourcePath) {
         Path fileResourcePath = resourcePath;
         if (Files.isDirectory(resourcePath)) {
             final Path indexResourcePath = resourcePath.resolve(this.indexFileName);
             if (Files.exists(indexResourcePath)) {
                 fileResourcePath = indexResourcePath;
             }
-        } else if (!Files.isRegularFile(resourcePath)) {
-            fileResourcePath = null;
         }
         return fileResourcePath;
     }
@@ -172,9 +172,9 @@ public class StaticFileContentRequestHandler extends HttpProtocolHandler impleme
             }
         } catch (final IOException e) {
             LOG.error("Error reading resource {}", resourcePath, e);
-            return new HttpResponse(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+            return HTTP.createResponse(HttpStatusCodes.INTERNAL_SERVER_ERROR, ResponseOptions.FORCE_CLOSE);
         }
-        return new HttpResponse(HttpStatusCodes.NOT_FOUND);
+        return HTTP.createResponse(HttpStatusCodes.NOT_FOUND, ResponseOptions.FORCE_CLOSE);
     }
 
     /**

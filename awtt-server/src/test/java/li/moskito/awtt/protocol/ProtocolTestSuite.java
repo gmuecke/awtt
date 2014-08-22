@@ -9,12 +9,11 @@ import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * @author Gerald
- *
  */
 @RunWith(Suite.class)
 @SuiteClasses({
         BinaryBodyTest.class, CustomHeaderFieldDefinitionTest.class, HeaderFieldTest.class, HeaderTest.class,
-        MessageChannelTest.class, MessageTest.class, ProtocolExceptionTest.class, ProtocolRegistryTest.class
+        MessageTest.class, ProtocolExceptionTest.class, ProtocolRegistryTest.class
 })
 public class ProtocolTestSuite {
 

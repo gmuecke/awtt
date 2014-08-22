@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,10 +23,16 @@ import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.HashSet;
+import java.util.Set;
+
+import li.moskito.awtt.protocol.MessageChannel.ErrorEvents;
+import li.moskito.awtt.protocol.MessageChannel.LifecycleEvents;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -49,6 +56,35 @@ public class MessageChannelTest {
         @Override
         protected CharBuffer serializeHeader(final Header header) {
             return mock.serializeHeader(header);
+        }
+
+        @SuppressWarnings("rawtypes")
+        @Override
+        public Set<MessageChannelOption> getSupportedOptions() {
+            return mock.getSupportedOptions();
+        }
+    }
+
+    public static class TestMessageChannelOption implements MessageChannelOption<String> {
+
+        @Override
+        public String name() {
+            return "testOption";
+        }
+
+        @Override
+        public Class<String> type() {
+            return String.class;
+        }
+
+        @Override
+        public String getDefault() {
+            return "default";
+        }
+
+        @Override
+        public String fromString(final String valueAsString) throws IllegalArgumentException {
+            return valueAsString;
         }
 
     }
@@ -167,6 +203,34 @@ public class MessageChannelTest {
         assertTrue(this.subject.hasMessage());
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testWrite_ByteBuffer_invalidMessage_noSubscribers() throws Exception {
+        when(this.channel.parseMessage(this.buffer)).thenThrow(ProtocolException.class);
+
+        // write from byteBuffer
+        this.subject.write(this.buffer);
+        assertFalse(this.subject.hasMessage());
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testWrite_ByteBuffer_invalidMessage_withSubscriber() throws Exception {
+        final ProtocolException px = new ProtocolException("something went wrong");
+        when(this.channel.parseMessage(this.buffer)).thenThrow(px);
+        final ChannelEventListener listener = mock(ChannelEventListener.class);
+        this.subject.subscribe(ErrorEvents.PARSE_ERROR, listener);
+
+        // write from byteBuffer
+        this.subject.write(this.buffer);
+        assertFalse(this.subject.hasMessage());
+
+        final ArgumentCaptor<Event> captor = ArgumentCaptor.forClass(Event.class);
+        verify(listener).onEvent(captor.capture());
+        final Event passedParam = captor.getValue();
+        assertEquals(px, passedParam.getEventData());
+    }
+
     @Test(expected = IOException.class)
     public void testWrite_ByteBuffer_channelClosed() throws Exception {
         this.subject.close();
@@ -208,23 +272,6 @@ public class MessageChannelTest {
         assertEquals(testData, writtenBody);
     }
 
-    /**
-     * Creates a BinaryChannel delivering the testContent. The method creates a temporary file with the content and
-     * opens a file channel on that file
-     * 
-     * @param testContent
-     * @return
-     * @throws IOException
-     */
-    private ByteChannel createBinaryChannel(final String testContent, final OpenOption... openOptions)
-            throws IOException {
-        final byte[] testBinaryContent = testContent.getBytes();
-        final Path tempFile = Files.createTempFile("binaryChannelData", "txt");
-        Files.write(tempFile, testBinaryContent);
-        final FileChannel ch = FileChannel.open(tempFile, openOptions);
-        return ch;
-    }
-
     @Test
     public void testWriteBody_binaryBody_binaryContent_partial() throws IOException {
         // prepare binary channel (from file)
@@ -247,6 +294,23 @@ public class MessageChannelTest {
         smallBuffer.flip();
         final String writtenBody = StandardCharsets.ISO_8859_1.decode(smallBuffer).toString();
         assertEquals(testcontent.substring(0, bufferSize), writtenBody);
+    }
+
+    /**
+     * Creates a BinaryChannel delivering the testContent. The method creates a temporary file with the content and
+     * opens a file channel on that file
+     * 
+     * @param testContent
+     * @return
+     * @throws IOException
+     */
+    private ByteChannel createBinaryChannel(final String testContent, final OpenOption... openOptions)
+            throws IOException {
+        final byte[] testBinaryContent = testContent.getBytes();
+        final Path tempFile = Files.createTempFile("binaryChannelData", "txt");
+        Files.write(tempFile, testBinaryContent);
+        final FileChannel ch = FileChannel.open(tempFile, openOptions);
+        return ch;
     }
 
     @Test
@@ -319,4 +383,154 @@ public class MessageChannelTest {
         assertEquals(this.inMessage, this.subject.readMessage());
     }
 
+    @Test
+    public void testProcessMessages() throws Exception {
+        final String expectedMessage = "TestMessage";
+        when(this.channel.parseMessage(this.buffer)).thenReturn(this.inMessage);
+        when(this.channel.getProtocol().process(this.inMessage)).thenReturn(this.outMessage);
+        when(this.channel.serializeHeader(this.outMessage.getHeader())).thenReturn(CharBuffer.wrap(expectedMessage));
+
+        // write from byteBuffer
+        this.subject.write(this.buffer);
+        assertTrue(this.subject.hasMessage());
+        this.subject.processMessages();
+        assertFalse(this.subject.hasMessage());
+        // read the message in the channel to byteBuffer
+        this.subject.read(this.buffer);
+        this.buffer.flip();
+        final String actualMessage = StandardCharsets.ISO_8859_1.decode(this.buffer).toString();
+        assertEquals(actualMessage, expectedMessage);
+
+    }
+
+    @Test
+    public void testProcessMessages_andNotify() throws Exception {
+        final ChannelEventListener listener = mock(ChannelEventListener.class);
+        this.subject.subscribe(LifecycleEvents.OUTPUT_QUEUE_EMPTY, listener);
+
+        this.testProcessMessages();
+
+        verify(listener).onEvent(LifecycleEvents.OUTPUT_QUEUE_EMPTY);
+
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetOption_invalidOption() throws Exception {
+        @SuppressWarnings("rawtypes")
+        final Set<MessageChannelOption> supportedOptions = new HashSet<>();
+        when(this.channel.getSupportedOptions()).thenReturn(supportedOptions);
+        this.subject.setOption(new TestMessageChannelOption(), Integer.valueOf(1));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetOption_invalidType() throws Exception {
+        @SuppressWarnings("rawtypes")
+        final Set<MessageChannelOption> supportedOptions = new HashSet<>();
+        final TestMessageChannelOption option = new TestMessageChannelOption();
+        supportedOptions.add(option);
+        when(this.channel.getSupportedOptions()).thenReturn(supportedOptions);
+
+        this.subject.setOption(option, Integer.valueOf(1));
+    }
+
+    @Test
+    public void testSetOption_validOption() throws Exception {
+        @SuppressWarnings("rawtypes")
+        final Set<MessageChannelOption> supportedOptions = new HashSet<>();
+        final TestMessageChannelOption option = new TestMessageChannelOption();
+        supportedOptions.add(option);
+
+        when(this.channel.getSupportedOptions()).thenReturn(supportedOptions);
+
+        this.subject.setOption(option, "testValue");
+        assertEquals("testValue", this.subject.getOption(option));
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testSubscribe_and_fireEvent() throws Exception {
+
+        final Event.Type eventType = mock(Event.Type.class);
+        final ChannelEventListener listener = mock(ChannelEventListener.class);
+        this.subject.subscribe(eventType, listener);
+
+        final Event event = mock(Event.class);
+        when(event.getType()).thenReturn(eventType);
+
+        this.subject.fireEvent(event);
+
+        verify(listener).onEvent(event);
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testSubscribe_and_fireOtherEvent() throws Exception {
+
+        final Event.Type eventType = mock(Event.Type.class);
+        final ChannelEventListener listener = mock(ChannelEventListener.class);
+        this.subject.subscribe(eventType, listener);
+
+        final Event event = mock(Event.class);
+        when(event.getType()).thenReturn(mock(Event.Type.class));
+
+        this.subject.fireEvent(event);
+
+        verify(listener, times(0)).onEvent(event);
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testSubscribeTwice_and_fireEvent() throws Exception {
+
+        final Event.Type eventType = mock(Event.Type.class);
+        final ChannelEventListener listener1 = mock(ChannelEventListener.class);
+        final ChannelEventListener listener2 = mock(ChannelEventListener.class);
+        this.subject.subscribe(eventType, listener1);
+        this.subject.subscribe(eventType, listener2);
+
+        final Event event = mock(Event.class);
+        when(event.getType()).thenReturn(eventType);
+
+        this.subject.fireEvent(event);
+
+        verify(listener1).onEvent(event);
+        verify(listener2).onEvent(event);
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testSubscribeTwice_and_fireDifferentEvent() throws Exception {
+
+        final Event.Type eventType1 = mock(Event.Type.class);
+        final Event.Type eventType2 = mock(Event.Type.class);
+        final ChannelEventListener listener1 = mock(ChannelEventListener.class);
+        final ChannelEventListener listener2 = mock(ChannelEventListener.class);
+        this.subject.subscribe(eventType1, listener1);
+        this.subject.subscribe(eventType2, listener2);
+
+        final Event event = mock(Event.class);
+        when(event.getType()).thenReturn(eventType1);
+
+        this.subject.fireEvent(event);
+
+        verify(listener1).onEvent(event);
+        verify(listener2, times(0)).onEvent(event);
+    }
+
+    @Test
+    public void testHasSubscriber_true() throws Exception {
+
+        final Event.Type eventType = mock(Event.Type.class);
+        final ChannelEventListener listener = mock(ChannelEventListener.class);
+        this.subject.subscribe(eventType, listener);
+
+        assertTrue(this.subject.hasSubscribers(eventType));
+    }
+
+    @Test
+    public void testHasSubscriber_noSubscriber() throws Exception {
+
+        final Event.Type eventType = mock(Event.Type.class);
+        assertFalse(this.subject.hasSubscribers(eventType));
+    }
 }

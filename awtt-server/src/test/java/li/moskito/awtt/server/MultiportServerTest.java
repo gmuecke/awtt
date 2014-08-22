@@ -1,6 +1,7 @@
 package li.moskito.awtt.server;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
@@ -9,14 +10,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.List;
+import java.util.Set;
 
 import li.moskito.awtt.common.Configurable;
-import li.moskito.awtt.protocol.ConnectionAttributes;
 import li.moskito.awtt.protocol.Header;
-import li.moskito.awtt.protocol.HeaderField;
 import li.moskito.awtt.protocol.Message;
 import li.moskito.awtt.protocol.MessageChannel;
+import li.moskito.awtt.protocol.MessageChannelOption;
 import li.moskito.awtt.protocol.Protocol;
 import li.moskito.awtt.protocol.ProtocolException;
 import li.moskito.awtt.protocol.ProtocolHandler;
@@ -102,6 +102,15 @@ public class MultiportServerTest {
         // TODO add some more assertions regarding the protocol
 
     }
+
+    @Test
+    public void testStopServer() throws Exception {
+        assertFalse(this.subject.isRunning());
+        this.testConfigureAndStartServer();
+        assertTrue(this.subject.isRunning());
+        this.subject.stopServer();
+        assertFalse(this.subject.isRunning());
+    }
     public static class TestProtocolHandler implements ProtocolHandler<Message, Message>, Configurable {
 
         public static TestProtocolHandler mock;
@@ -142,6 +151,12 @@ public class MultiportServerTest {
             return mock.serializeHeader(header);
         }
 
+        @SuppressWarnings("rawtypes")
+        @Override
+        public Set<MessageChannelOption> getSupportedOptions() {
+            return mock.getSupportedOptions();
+        }
+
     }
 
     public static class TestProtocol implements Protocol {
@@ -161,16 +176,6 @@ public class MultiportServerTest {
         @Override
         public Message process(final Message message) {
             return mock.process(message);
-        }
-
-        @Override
-        public boolean isCloseChannelsAfterProcess(final Message request) {
-            return mock.isCloseChannelsAfterProcess(request);
-        }
-
-        @Override
-        public List<HeaderField> getKeepAliverHeaders(final ConnectionAttributes connectionControl) {
-            return mock.getKeepAliverHeaders(connectionControl);
         }
 
     }
