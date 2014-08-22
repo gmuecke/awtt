@@ -19,6 +19,7 @@ import java.util.HashSet;
 import li.moskito.awtt.protocol.MessageChannel;
 import li.moskito.awtt.protocol.MessageChannelOption;
 import li.moskito.awtt.protocol.MessageChannelOptions;
+import li.moskito.awtt.protocol.Protocol;
 
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.junit.Before;
@@ -42,6 +43,9 @@ public class BlockingConnectionHandlerTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Port port;
     @Mock
+    private Protocol protocol;
+
+    @Mock
     private MessageChannel mockChannel;
 
     private BlockingConnectionHandler subject;
@@ -54,7 +58,9 @@ public class BlockingConnectionHandlerTest {
         MockitoAnnotations.initMocks(this);
         when(this.port.getHostname()).thenReturn(InetAddress.getLoopbackAddress());
         when(this.port.getPortNumber()).thenReturn(TEST_PORT);
-        when(this.port.getProtocol().openChannel()).thenReturn(this.mockChannel);
+        when(this.port.getProtocol()).thenReturn(this.protocol);
+        when(this.protocol.openChannel()).thenReturn(this.mockChannel);
+
         this.subject = new BlockingConnectionHandler();
         this.subject.configure(new HierarchicalConfiguration());
 
@@ -113,6 +119,7 @@ public class BlockingConnectionHandlerTest {
     public void testRun_setChannelOptions() throws Exception {
         this.supportedOptions.add(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES);
         this.supportedOptions.add(MessageChannelOptions.KEEP_ALIVE_TIMEOUT);
+        when(this.mockChannel.getSupportedOptions()).thenReturn(this.supportedOptions);
         when(this.mockChannel.getOption(any(MessageChannelOption.class))).thenReturn(Integer.valueOf(20));
 
         final HierarchicalConfiguration conf = new HierarchicalConfiguration();
@@ -134,9 +141,11 @@ public class BlockingConnectionHandlerTest {
         // keep alive was configured and is therefore passed to the channel
         final ArgumentCaptor<Integer> valueCaptor = ArgumentCaptor.forClass(Integer.class);
         final ArgumentCaptor<MessageChannelOption> optionCaptor = ArgumentCaptor.forClass(MessageChannelOption.class);
+
+        verify(this.mockChannel).getSupportedOptions();
         verify(this.mockChannel).setOption(optionCaptor.capture(), valueCaptor.capture());
-        assertEquals(Integer.valueOf(5), valueCaptor.getValue());
         assertEquals(MessageChannelOptions.KEEP_ALIVE_TIMEOUT, optionCaptor.getValue());
+        assertEquals(Integer.valueOf(5), valueCaptor.getValue());
         // was not configured
         verify(this.mockChannel, times(0)).setOption(MessageChannelOptions.KEEP_ALIVE_MAX_MESSAGES, Integer.valueOf(5));
 
