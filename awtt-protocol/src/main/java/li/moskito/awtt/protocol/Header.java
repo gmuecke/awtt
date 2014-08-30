@@ -12,11 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import li.moskito.awtt.protocol.http.HttpVersion;
-
 /**
- * The header of a {@link Protocol} {@link Message}. The header carries the {@link HttpVersion} of the protocol and a
- * list of {@link HeaderField}s.
+ * The header of a {@link Protocol} {@link Message}. The header carries the {@link ProtocolVersion} of the protocol and
+ * a list of {@link HeaderField}s.
  * 
  * @author Gerald
  */

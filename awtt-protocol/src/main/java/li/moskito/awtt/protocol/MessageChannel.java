@@ -18,8 +18,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import li.moskito.awtt.protocol.http.HttpProtocolException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -552,7 +550,8 @@ public abstract class MessageChannel implements ByteChannel {
      * @throws ProtocolException
      *             if the buffer contained data that were not parseable by the underlying protocol
      * @throws IOException
-     * @throws HttpProtocolException
+     * @throws ProtocolException
+     *             if the message data does not accord to the protocol specification
      */
     protected abstract Message parseMessage(ByteBuffer src) throws ProtocolException, IOException;
 
