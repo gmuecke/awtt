@@ -366,7 +366,7 @@ public class StaticFileContentRequestHandlerTest {
      * @return
      */
     private String toHttpDate(final long ts) {
-        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyy HH:mm:ss zzz", Locale.ENGLISH);
+        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyy HH:mm:ss zzz", Locale.ENGLISH);
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         final String expectedLastModifiedDate = sdf.format(new Date(ts));
         return expectedLastModifiedDate;
