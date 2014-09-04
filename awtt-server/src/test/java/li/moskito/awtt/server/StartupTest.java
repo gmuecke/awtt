@@ -36,7 +36,7 @@ public class StartupTest {
         final URL url = Startup.class.getClassLoader().getResource("awttServerConfig.xml");
         final XMLConfiguration xconf = new XMLConfiguration(url);
         xconf.setExpressionEngine(new XPathExpressionEngine());
-        this.serverPort = xconf.getInt("//ports/listenPort[@protocol='http']/@port");
+        this.serverPort = xconf.getInt("//ports/listenPort[@protocol='test']/@port");
         this.waitForPortAvailability(this.serverPort);
     }
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!-- the default configuration has to be named awttServerConfig.xml -->
+<awttServer type="li.moskito.awtt.server.MultiportServer">
+	<protocols>
+		<protocol name="test" class="li.moskito.awtt.server.TestProtocol">
+		</protocol>
+	</protocols>
+	<ports>
+		<listenPort hostname="" port="18080" protocol="test">
+			<connectionHandler
+				class="li.moskito.awtt.server.BlockingConnectionHandler">
+				<!-- Number of concurrent connections -->
+				<maxConnections>250</maxConnections>
+				<!-- Keep Alive timeout in seconds, remove element for closing after a message has been processed -->
+				<keepAliveTimeout>5</keepAliveTimeout>
+				<!-- Maximum of Messages before the connection closes. Remove element for unlimited -->
+				<maxMessagesPerConnection>100</maxMessagesPerConnection>
+			</connectionHandler>
+		</listenPort>
+	</ports>
+</awttServer>

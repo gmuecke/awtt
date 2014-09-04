@@ -27,6 +27,12 @@
 				</contentTypes>
 				<!-- END Handler specific configuration -->
 			</handler>
+			<handler class="li.moskito.awtt.server.http.DirectoryListingRequestHandler">
+				<!-- BEGIN Handler specific configuration -->	
+				<!-- Location (as URI) that contains the files to be hosted -->
+				<contentRoot>file:///http/htdocs</contentRoot>
+				<!-- END Handler specific configuration -->
+			</handler>
 		</protocol>
 	</protocols>
 	<ports>
