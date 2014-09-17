@@ -2,81 +2,34 @@ package li.moskito.awtt.server.http;
 
 import static li.moskito.awtt.protocol.http.RequestHeaders.IF_MODIFIED_SINCE;
 import static li.moskito.awtt.protocol.http.ResponseHeaders.LAST_MODIFIED;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 
-import li.moskito.awtt.protocol.HeaderFieldDefinition;
 import li.moskito.awtt.protocol.http.HttpCommands;
-import li.moskito.awtt.protocol.http.HttpRequest;
 import li.moskito.awtt.protocol.http.HttpResponse;
 import li.moskito.awtt.protocol.http.HttpStatusCodes;
 import li.moskito.awtt.protocol.http.HttpVersion;
-import li.moskito.awtt.protocol.http.RequestHeaders;
 import li.moskito.awtt.protocol.http.ResponseHeaders;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.HierarchicalConfiguration;
-import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-public class StaticFileContentRequestHandlerTest {
-
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private HttpRequest httpRequest;
+public class StaticFileContentRequestHandlerTest extends FileRequestHandlerBaseTest {
 
     private FileResourceRequestHandler subject;
 
-    private HierarchicalConfiguration config;
-
-    private Path testFile;
-
-    private Path pathWithNoIndex;
-
+    @Override
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-        this.config = new HierarchicalConfiguration();
-        this.config.setExpressionEngine(new XPathExpressionEngine());
+        super.setUp();
         this.subject = new StaticFileContentRequestHandler();
-        final String contentRoot = this.createTestContentRoot();
-        this.configureSubject(contentRoot);
-
+        this.subject.configure(super.config);
         when(this.httpRequest.getHeader().getVersion()).thenReturn(HttpVersion.HTTP_1_1);
-    }
-
-    private String createTestContentRoot() throws IOException {
-        final Path tempContentRoot = Files.createTempDirectory("contentRoot");
-        this.pathWithNoIndex = Files.createTempDirectory(tempContentRoot, "noIndex");
-        this.testFile = Files.createTempFile(tempContentRoot, "testFile", ".txt");
-        return tempContentRoot.toUri().toString();
-    }
-
-    private void configureSubject(final String contentRoot) throws ConfigurationException {
-        this.config.addProperty("contentRoot", contentRoot);
-        this.config.addProperty("indexFile", this.testFile.getFileName().toString());
-        this.config.addProperty("contentTypes", "");
-        this.config.addProperty("contentTypes/type", "");
-        this.config.addProperty("contentTypes/type/@mimeType", "text/plain");
-        this.config.addProperty("contentTypes/type/@fileExtension", "txt");
-        this.subject.configure(this.config);
     }
 
     @Test
@@ -139,9 +92,9 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.OK, httpResponse);
-        this.assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
-        this.assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
+        assertStatus(HttpStatusCodes.OK, httpResponse);
+        assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
+        assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
     }
 
     @Test
@@ -158,9 +111,9 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.OK, httpResponse);
-        this.assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
-        this.assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
+        assertStatus(HttpStatusCodes.OK, httpResponse);
+        assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
+        assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
     }
 
     @Test
@@ -175,7 +128,7 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.NOT_FOUND, httpResponse);
+        assertStatus(HttpStatusCodes.NOT_FOUND, httpResponse);
     }
 
     @Test
@@ -191,9 +144,9 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.NOT_FOUND, httpResponse);
-        this.assertHeaderField("close", httpResponse, ResponseHeaders.CONNECTION);
-        this.assertHeaderField("0", httpResponse, ResponseHeaders.CONTENT_LENGTH);
+        assertStatus(HttpStatusCodes.NOT_FOUND, httpResponse);
+        assertHeaderField("close", httpResponse, ResponseHeaders.CONNECTION);
+        assertHeaderField("0", httpResponse, ResponseHeaders.CONTENT_LENGTH);
     }
 
     @Test
@@ -210,9 +163,9 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.OK, httpResponse);
-        this.assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
-        this.assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
+        assertStatus(HttpStatusCodes.OK, httpResponse);
+        assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
+        assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
 
     }
 
@@ -233,9 +186,9 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.OK, httpResponse);
-        this.assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
-        this.assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
+        assertStatus(HttpStatusCodes.OK, httpResponse);
+        assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
+        assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
 
     }
 
@@ -257,9 +210,9 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.OK, httpResponse);
-        this.assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
-        this.assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
+        assertStatus(HttpStatusCodes.OK, httpResponse);
+        assertHeaderField(expectedLastModifiedDate, httpResponse, LAST_MODIFIED);
+        assertHeaderField("text/plain", httpResponse, ResponseHeaders.CONTENT_TYPE);
 
     }
 
@@ -280,95 +233,6 @@ public class StaticFileContentRequestHandlerTest {
 
         // assert
         assertNotNull(httpResponse);
-        this.assertStatus(HttpStatusCodes.NOT_MODIFIED, httpResponse);
-    }
-
-    /**
-     * Asserts the value of the specified header field
-     * 
-     * @param expectedValue
-     *            the expected value of the header field
-     * @param httpResponse
-     *            the response carrying the heaer field
-     * @param headerField
-     *            the name of the header field
-     */
-    protected void assertHeaderField(final String expectedValue, final HttpResponse httpResponse,
-            final HeaderFieldDefinition headerField) {
-        assertTrue("Field " + headerField + " is not present", httpResponse.getHeader().hasField(headerField));
-        assertEquals(expectedValue, httpResponse.getHeader().getField(headerField).getValue());
-    }
-
-    /**
-     * Asserts the status code of a HTTPResponse
-     * 
-     * @param code
-     *            the expected status code
-     * @param httpResponse
-     *            the response containing the status
-     */
-    protected void assertStatus(final HttpStatusCodes code, final HttpResponse httpResponse) {
-        assertEquals(code, httpResponse.getStatusCode());
-
-    }
-
-    /**
-     * sets up the mock request with the specified resource
-     * 
-     * @param pathToResource
-     * @throws URISyntaxException
-     */
-    private void setupResource(final Path pathToResource) throws URISyntaxException {
-        this.setupResource(pathToResource.getFileName().toString());
-
-    }
-
-    /**
-     * sets up the mock request with the specified resource
-     * 
-     * @param resourcePath
-     * @throws URISyntaxException
-     */
-    private void setupResource(final String resourcePath) throws URISyntaxException {
-        when(this.httpRequest.getResource()).thenReturn(new URI(resourcePath));
-
-    }
-
-    /**
-     * Sets up the mock request with the specified command
-     * 
-     * @param cmd
-     *            the command to set
-     */
-    private void setupCommand(final HttpCommands cmd) {
-        when(this.httpRequest.getCommand()).thenReturn(cmd);
-
-    }
-
-    /**
-     * Sets up the mock request header with the specified field
-     * 
-     * @param headerField
-     *            headerfield to be added to the mock request
-     * @param value
-     *            value of the field
-     */
-    private void setupHeaderField(final RequestHeaders headerField, final String value) {
-        when(this.httpRequest.getHeader().hasField(headerField)).thenReturn(true);
-        when(this.httpRequest.getHeader().getField(headerField).getValue()).thenReturn(value);
-
-    }
-
-    /**
-     * Converts the timestamp into a HTTP Date string
-     * 
-     * @param ts
-     * @return
-     */
-    private String toHttpDate(final long ts) {
-        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyy HH:mm:ss zzz", Locale.ENGLISH);
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-        final String expectedLastModifiedDate = sdf.format(new Date(ts));
-        return expectedLastModifiedDate;
+        assertStatus(HttpStatusCodes.NOT_MODIFIED, httpResponse);
     }
 }
