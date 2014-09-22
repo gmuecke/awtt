@@ -5,8 +5,8 @@
 			<handler class="li.moskito.awtt.server.http.StaticFileContentRequestHandler">
 				<!-- BEGIN Handler specific configuration -->	
 				<!-- Location (as URI) that contains the files to be hosted -->
-				<contentRoot>file:///http/htdocs</contentRoot>
-				<indexFile>index.html</indexFile>
+				<contentRoot>file:///http/template</contentRoot>
+				<indexFile>noindex.html</indexFile>
 				<!-- ContentType - FileExtension mapping -->
 				<contentTypes>
 					<type mimeType="text/plain" fileExtension="txt" />
@@ -30,7 +30,8 @@
 			<handler class="li.moskito.awtt.server.http.DirectoryListingRequestHandler">
 				<!-- BEGIN Handler specific configuration -->	
 				<!-- Location (as URI) that contains the files to be hosted -->
-				<contentRoot>file:///http/htdocs</contentRoot>
+				<contentRoot>file:///http/template</contentRoot>
+				<indexFile></indexFile>
 				<!-- END Handler specific configuration -->
 			</handler>
 		</protocol>

@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Gerald
  */
-public class FileResourceRequestHandler extends HttpProtocolHandler implements Configurable {
+public abstract class FileResourceRequestHandler extends HttpProtocolHandler implements Configurable {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileResourceRequestHandler.class);
 
@@ -77,6 +77,10 @@ public class FileResourceRequestHandler extends HttpProtocolHandler implements C
         }
     }
 
+    protected Path getContentRoot() {
+        return this.contentRoot;
+    }
+
     /**
      * Checks if the the URI points to a valid and existing file resource. If the resource points to a directory it is
      * still valid if the directory contains an index file
@@ -87,7 +91,21 @@ public class FileResourceRequestHandler extends HttpProtocolHandler implements C
      */
     protected boolean isFileResource(final URI resourceId) {
         final Path resourcePath = this.resolveFileResource(resourceId);
-        return resourcePath != null && (Files.isRegularFile(resourcePath) || !resourceId.getPath().endsWith("/"));
+        return resourcePath != null
+                && (Files.isRegularFile(resourcePath) || !resourceId.getPath().endsWith("/")
+                        && !Files.isDirectory(resourcePath));
+    }
+
+    /**
+     * Checks if the the URI points to a valid and existing resource in the filesystem. *
+     * 
+     * @param resourceId
+     *            the resource to verify
+     * @return <code>true</code> if the resource points to a file or a directory
+     */
+    protected boolean isFileSystemResource(final URI resourceId) {
+        final Path resourcePath = this.resolveFileResource(resourceId);
+        return resourcePath != null && (Files.isRegularFile(resourcePath) || Files.isDirectory(resourcePath));
     }
 
     /**

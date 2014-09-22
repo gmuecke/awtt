@@ -3,7 +3,6 @@
  */
 package li.moskito.awtt.protocol;
 
-import java.nio.channels.ByteChannel;
 import java.nio.channels.ReadableByteChannel;
 
 /**
@@ -13,13 +12,13 @@ import java.nio.channels.ReadableByteChannel;
  */
 public class BinaryBody implements Body {
 
-    private final ByteChannel byteChannel;
+    private final ReadableByteChannel byteChannel;
 
     /**
      * @param byteChannel
      *            the channel containing or accepting binary data of the body
      */
-    public BinaryBody(final ByteChannel byteChannel) {
+    public BinaryBody(final ReadableByteChannel byteChannel) {
         this.byteChannel = byteChannel;
     }
 

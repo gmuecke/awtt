@@ -34,7 +34,8 @@ public class FileResourceRequestHandlerTest extends FileRequestHandlerBaseTest {
     public void setUp() throws Exception {
         super.setUp();
         MockitoAnnotations.initMocks(this);
-        this.subject = new FileResourceRequestHandler();
+        this.subject = new FileResourceRequestHandler() {
+        };
         this.subject.configure(super.config);
     }
 
@@ -45,8 +46,7 @@ public class FileResourceRequestHandlerTest extends FileRequestHandlerBaseTest {
 
     @Test
     public void testIsFileResource_isExistingDirectory_false() throws Exception {
-        final Path requestPath = super.contentRoot.relativize(super.pathWithNoIndex);
-        assertFalse(this.subject.isFileResource(new URI(requestPath.toString() + "/")));
+        assertFalse(this.subject.isFileResource(new URI(super.pathWithNoIndex.getFileName() + "/")));
     }
 
     @Test
@@ -63,6 +63,38 @@ public class FileResourceRequestHandlerTest extends FileRequestHandlerBaseTest {
     @Test
     public void testIsFileResource_isNonExistingFile_true() throws Exception {
         assertTrue(this.subject.isFileResource(new URI("a/file")));
+    }
+
+    @Test
+    public void testIsFileSystemResource_isDirectory() throws Exception {
+        assertTrue(this.subject.isFileSystemResource(new URI(super.pathWithNoIndex.getFileName() + "/")));
+    }
+
+    @Test
+    public void testIsFileSystemResource_isExistingFile_true() throws Exception {
+        assertTrue(this.subject.isFileSystemResource(this.getTestFileResourceURI()));
+    }
+
+    @Test
+    public void testIsFileSystemResource_isExistingDirectory_true() throws Exception {
+        final Path requestPath = super.contentRoot.relativize(super.pathWithNoIndex);
+        assertTrue(this.subject.isFileSystemResource(new URI(requestPath.toString() + "/")));
+    }
+
+    @Test
+    public void testIsFileSystemResource_isExistingDirectoryWithIndexFile_true() throws Exception {
+        // content root has index file
+        assertTrue(this.subject.isFileSystemResource(new URI(super.pathWithIndex.getFileName() + "/")));
+    }
+
+    @Test
+    public void testIsFileSystemResource_isNonExistingDirectory_false() throws Exception {
+        assertFalse(this.subject.isFileSystemResource(new URI("a/b/")));
+    }
+
+    @Test
+    public void testIsFileSystemResource_isNonExistingFile_false() throws Exception {
+        assertFalse(this.subject.isFileSystemResource(new URI("a/file")));
     }
 
     @Test
