@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 import li.moskito.awtt.protocol.BinaryBody;
@@ -29,6 +30,7 @@ import li.moskito.awtt.protocol.http.HttpCommands;
 import li.moskito.awtt.protocol.http.HttpRequest;
 import li.moskito.awtt.protocol.http.HttpResponse;
 import li.moskito.awtt.protocol.http.HttpStatusCodes;
+import li.moskito.awtt.server.ServerRuntimeException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
@@ -43,6 +45,8 @@ import org.slf4j.LoggerFactory;
 public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
 
     /**
+     * Visitor that is used when walking the filetree to create the listing of the files.
+     * 
      * @author Gerald
      */
     private final class ListingFileVisitor implements FileVisitor<Path> {
@@ -93,11 +97,19 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
         }
     }
 
+    /**
+     * Options for Visiting Files or Directories
+     * 
+     * @author Gerald
+     */
     private enum VisitingOption {
         DIRECTORIES,
         FILES, ;
     }
 
+    /**
+     * For for the creation of a html link
+     */
     private enum LinkType {
         PARENT,
         FOLDER,
@@ -113,6 +125,19 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
      * SLF4J Logger for this class
      */
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryListingRequestHandler.class);
+    private final Properties templates;
+
+    /**
+     * 
+     */
+    public DirectoryListingRequestHandler() {
+        this.templates = new Properties();
+        try {
+            this.templates.load(this.getClass().getResourceAsStream("templates.properties"));
+        } catch (final IOException e) {
+            throw new ServerRuntimeException("Unable to load directory listing templates", e);
+        }
+    }
 
     /**
      * Accepts GET requests to an existing file or directory with an index file
@@ -158,17 +183,10 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
         final String title = "Directory " + httpRequest.getResource();
 
         //@formatter:off
-        final String style = String.format("<style type=\"text/css\"><!--" 
-                + "body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt;" +
-                "         background-color: #DDDDFF;}"
-                + "ul { list-style-type:none; }"
-                + "ul li.folder a:before {" + "content: " + this.getImageContentURL("folder") + "}"
-                + "ul li.parent a:before {" + "content: " + this.getImageContentURL("parent") + "}"
-                + "ul li.file a:before {" + "content: " + this.getImageContentURL("file") + "}" 
-                + "--></style>");
+        final String style = this.fromTemplate("html.head.style", this.getListItemStyle("parent"), this.getListItemStyle("folder"), this.getListItemStyle("file"));
         
         // @formatter:on
-        final String head = String.format("<head><title>%s</title></head>\n%s\n", title, style);
+        final String head = this.fromTemplate("html.head", title, style);
 
         final StringBuilder listingBuf = new StringBuilder(256);
 
@@ -178,10 +196,10 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
         Files.walkFileTree(resourcePath, new ListingFileVisitor(listingBuf, resourcePath, VisitingOption.DIRECTORIES));
         Files.walkFileTree(resourcePath, new ListingFileVisitor(listingBuf, resourcePath, VisitingOption.FILES));
 
-        final String header = String.format("<h1>%s</h1>", httpRequest.getResource());
-        final String list = String.format("<ul>\n%s</ul>\n", listingBuf);
-        final String body = String.format("<body>%s%s</body>\n", header, list);
-        final String html = String.format("<html>\n%s%s</html>", head, body);
+        final String header = this.fromTemplate("html.h1", httpRequest.getResource());
+        final String list = this.fromTemplate("html.ul", listingBuf);
+        final String body = this.fromTemplate("html.body", header, list);
+        final String html = this.fromTemplate("html", head, body);
 
         final byte[] data = html.getBytes();
         final HttpResponse httpResponse = new HttpResponse(HttpStatusCodes.OK);
@@ -195,23 +213,38 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
         return httpResponse;
     }
 
+    private String fromTemplate(final String templateName, final Object... args) {
+        return String.format(this.templates.getProperty(templateName), args);
+    }
+
     private String createLink(final Path path, final LinkType type) {
         return this.createLink(path, type, path.getFileName().toString());
     }
 
     private String createLink(final Path path, final LinkType type, final String name) {
-        String resolvedPath;
-        if (path.equals(this.getContentRoot())) {
-            resolvedPath = "/";
-        } else {
-            resolvedPath = this.getContentRoot().relativize(path).toString().replaceAll("\\\\", "/");
+        String resolvedPath = "/";
+        if (!path.equals(this.getContentRoot())) {
+            resolvedPath += this.getContentRoot().relativize(path).toString().replaceAll("\\\\", "/");
         }
-
         return String.format("<li class=\"%s\"><a href=\"%s\">%s</a></li>\n", type, resolvedPath, name);
     }
 
+    private String getListItemStyle(final String type) throws IOException {
+        final StringBuilder buf = new StringBuilder(64);
+        //@formatter:off
+        buf.append("display: inline-block;\n").
+            append("width: 16px;\n").
+            append("height: 16px;\n").
+            append("content: \"\";\n").
+            append("margin-right: 5px;\n").
+            append("background-color: blue;").
+            append("background: 0 0/100% no-repeat ").append(this.getImageContentURL(type)).append(';');
+        // @formatter:on
+        return buf.toString();
+    }
+
     private String getImageContentURL(final String imageName) throws IOException {
-        return String.format("url(data:image/png;base64,%s);", this.getImageBase64(imageName));
+        return String.format("url(data:image/png;base64,%s)", this.getImageBase64(imageName));
     }
 
     private String getImageBase64(final String imageName) throws IOException {

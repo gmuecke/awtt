@@ -38,10 +38,6 @@
 						</goals>
 					</execution>
 				</executions>
-				<configuration>
-					<height>16</height>
-					<width>16</width>
-				</configuration>
 				<dependencies>
 					<dependency>
 						<groupId>batik</groupId>
