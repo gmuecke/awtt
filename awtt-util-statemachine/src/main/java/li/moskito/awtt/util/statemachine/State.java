@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public class State {
 
-    private final Map<Character, Transition> transitions;
+    private final Map<Object, Transition> transitions;
     private final boolean finalState;
 
     public State(final boolean isFinal) {
@@ -28,13 +28,13 @@ public class State {
 
     public State addTransition(final Transition... transitions) {
         for (final Transition t : transitions) {
-            this.transitions.put(t.getTriggerChar(), t);
+            this.transitions.put(t.getTrigger(), t);
         }
         return this;
     }
 
-    public Transition getTransitionForChar(final char c) {
-        return this.transitions.get(c);
+    public Transition getTransitionForTrigger(final Object trigger) {
+        return this.transitions.get(trigger);
     }
 
     public boolean isFinal() {

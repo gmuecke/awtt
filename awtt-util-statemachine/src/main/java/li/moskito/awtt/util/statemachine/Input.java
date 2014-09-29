@@ -8,14 +8,14 @@ package li.moskito.awtt.util.statemachine;
  * 
  * @author Gerald
  */
-public interface Input {
+public interface Input<T> {
 
     /**
      * Reads the character on the current position
      * 
      * @return
      */
-    char read();
+    T read();
 
     /**
      * Moves the curser on the data

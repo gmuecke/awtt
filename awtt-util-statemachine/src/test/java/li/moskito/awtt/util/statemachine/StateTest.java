@@ -33,16 +33,16 @@ public class StateTest {
     @Test
     public void testGetTransitionForChar_knownChar() throws Exception {
 
-        when(this.transition.getTriggerChar()).thenReturn('c');
+        when(this.transition.getTrigger()).thenReturn('c');
         assertSame(this.subject, this.subject.addTransition(this.transition));
-        assertSame(this.transition, this.subject.getTransitionForChar('c'));
+        assertSame(this.transition, this.subject.getTransitionForTrigger('c'));
     }
 
     @Test
     public void testGetTransitionForChar_unknownChar_null() throws Exception {
 
-        when(this.transition.getTriggerChar()).thenReturn('c');
+        when(this.transition.getTrigger()).thenReturn('c');
         assertSame(this.subject, this.subject.addTransition(this.transition));
-        assertNull(this.subject.getTransitionForChar('b'));
+        assertNull(this.subject.getTransitionForTrigger('b'));
     }
 }

@@ -46,7 +46,7 @@ public class StatemachineTest {
         when(finalState.isFinal()).thenReturn(true);
 
         when(this.input.read()).thenReturn('c');
-        when(this.initialState.getTransitionForChar('c')).thenReturn(this.transition);
+        when(this.initialState.getTransitionForTrigger('c')).thenReturn(this.transition);
         when(this.transition.getNextState()).thenReturn(finalState);
         when(this.transition.getCursorMovement()).thenReturn(3);
 
@@ -68,7 +68,7 @@ public class StatemachineTest {
         when(finalState.isFinal()).thenReturn(true);
 
         when(this.input.read()).thenReturn('c');
-        when(this.initialState.getTransitionForChar('c')).thenReturn(this.transition);
+        when(this.initialState.getTransitionForTrigger('c')).thenReturn(this.transition);
         when(this.transition.getNextState()).thenReturn(finalState);
         when(this.transition.getCursorMovement()).thenReturn(3);
 

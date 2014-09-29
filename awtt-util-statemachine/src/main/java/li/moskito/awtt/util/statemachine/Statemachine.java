@@ -14,7 +14,7 @@ import java.util.Set;
  * 
  * @author Gerald
  */
-public class Statemachine {
+public class Statemachine<T> {
 
     private final Set<State> states;
     private State currentState;
@@ -55,7 +55,7 @@ public class Statemachine {
      * @param input
      *            the input for the statemachine
      */
-    public void run(final Input input) {
+    public void run(final Input<T> input) {
         while (!this.currentState.isFinal()) {
             this.step(input);
         }
@@ -67,8 +67,8 @@ public class Statemachine {
      * @param input
      *            the input for the state machine
      */
-    public void step(final Input input) {
-        final Transition t = this.currentState.getTransitionForChar(input.read());
+    public void step(final Input<T> input) {
+        final Transition t = this.currentState.getTransitionForTrigger(input.read());
         t.fire();
         input.moveCursor(t.getCursorMovement());
         this.currentState = t.getNextState();

@@ -10,11 +10,11 @@ public class Transition {
     /**
      * Wildcard character for any character
      */
-    public static final char ANY = 0x00;
+    public static final Object ANY_TRIGGER = new Object();
     /**
      * Special character to be used for end-of-file
      */
-    public static final char EOF = 0xff;
+    public static final Object EOF_TRIGGER = new Object();
 
     /**
      * Empty Action
@@ -26,7 +26,7 @@ public class Transition {
         }
     };
 
-    private final char triggerChar;
+    private final Object trigger;
     private final State nextState;
     private final int cursorMovement;
     private final Runnable transitionAction;
@@ -44,8 +44,8 @@ public class Transition {
      * @param transitionAction
      *            action to be performed when transitioning
      */
-    public Transition(final char c, final int cursorMovement, final State next, final Runnable transitionAction) {
-        this.triggerChar = c;
+    public Transition(final Object trigger, final int cursorMovement, final State next, final Runnable transitionAction) {
+        this.trigger = trigger;
         this.nextState = next;
         this.cursorMovement = cursorMovement;
         this.transitionAction = transitionAction;
@@ -54,7 +54,7 @@ public class Transition {
     /**
      * Creates a new transition
      * 
-     * @param c
+     * @param trigger
      *            the char that triggers the transition
      * @param cursorMovement
      *            the number of positions the curser should be moved. Negative values move the cursor to previous
@@ -62,8 +62,8 @@ public class Transition {
      * @param next
      *            the next state after the transition
      */
-    public Transition(final char c, final int cursorMovement, final State next) {
-        this(c, cursorMovement, next, EMPTY_ACTION);
+    public Transition(final Object trigger, final int cursorMovement, final State next) {
+        this(trigger, cursorMovement, next, EMPTY_ACTION);
     }
 
     /**
@@ -76,7 +76,7 @@ public class Transition {
      * @param transitionAction
      *            action to be performed when transitioning
      */
-    public Transition(final char c, final State next, final Runnable transitionAction) {
+    public Transition(final Object c, final State next, final Runnable transitionAction) {
         this(c, 1, next, transitionAction);
     }
 
@@ -88,7 +88,7 @@ public class Transition {
      * @param next
      *            the next state after the transition
      */
-    public Transition(final char c, final State next) {
+    public Transition(final Object c, final State next) {
         this(c, next, EMPTY_ACTION);
     }
 
@@ -101,7 +101,7 @@ public class Transition {
      *            action to be performed when transitioning
      */
     public Transition(final State next, final Runnable transitionAction) {
-        this(ANY, 1, next, transitionAction);
+        this(ANY_TRIGGER, 1, next, transitionAction);
     }
 
     /**
@@ -117,8 +117,8 @@ public class Transition {
     /**
      * @return the trigger char
      */
-    public char getTriggerChar() {
-        return this.triggerChar;
+    public Object getTrigger() {
+        return this.trigger;
     }
 
     /**
