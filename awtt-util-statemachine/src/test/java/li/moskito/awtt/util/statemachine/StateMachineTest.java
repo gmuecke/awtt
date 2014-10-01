@@ -15,7 +15,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StatemachineTest {
+public class StateMachineTest {
 
     @Mock
     private Input input;
@@ -27,7 +27,7 @@ public class StatemachineTest {
     private State initialState;
 
     @InjectMocks
-    private Statemachine statemachine;
+    private StateMachine statemachine;
 
     @Before
     public void setUp() throws Exception {

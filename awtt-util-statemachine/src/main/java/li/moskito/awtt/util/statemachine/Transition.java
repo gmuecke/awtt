@@ -19,7 +19,7 @@ public class Transition {
     /**
      * Empty Action
      */
-    private static final Runnable EMPTY_ACTION = new Runnable() {
+    static final Runnable EMPTY_ACTION = new Runnable() {
 
         @Override
         public void run() {

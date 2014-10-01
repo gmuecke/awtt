@@ -14,7 +14,7 @@ import java.util.Set;
  * 
  * @author Gerald
  */
-public class Statemachine<T> {
+public class StateMachine<T> {
 
     private final Set<State> states;
     private State currentState;
@@ -25,7 +25,7 @@ public class Statemachine<T> {
      * 
      * @param initialState
      */
-    public Statemachine(final State initialState) {
+    public StateMachine(final State initialState) {
         this.states = new HashSet<>();
         this.states.add(initialState);
         this.currentState = initialState;
@@ -37,7 +37,7 @@ public class Statemachine<T> {
      * @param state
      * @return
      */
-    public Statemachine addState(final State... state) {
+    public StateMachine addState(final State... state) {
         this.states.addAll(Arrays.asList(state));
         return this;
     }
@@ -68,10 +68,29 @@ public class Statemachine<T> {
      *            the input for the state machine
      */
     public void step(final Input<T> input) {
-        final Transition t = this.currentState.getTransitionForTrigger(input.read());
+        final Object trigger = this.getTrigger(input);
+        final Transition t = this.currentState.getTransitionForTrigger(trigger);
         t.fire();
         input.moveCursor(t.getCursorMovement());
         this.currentState = t.getNextState();
+    }
+
+    /**
+     * Retrieves the trigger for the current input. If the input has reached its end, an EOF trigger is returned
+     * otherwise the data on the inputs current cursor position
+     * 
+     * @param input
+     *            the input that provides the trigger
+     * @return the Trigger from the input
+     */
+    private Object getTrigger(final Input<T> input) {
+        final Object trigger;
+        if (input.hasMore()) {
+            trigger = input.read();
+        } else {
+            trigger = Transition.EOF_TRIGGER;
+        }
+        return trigger;
     }
 
 }

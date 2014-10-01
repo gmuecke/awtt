@@ -34,6 +34,9 @@ public class State {
     }
 
     public Transition getTransitionForTrigger(final Object trigger) {
+        if (!this.transitions.containsKey(trigger) && this.transitions.containsKey(Transition.ANY_TRIGGER)) {
+            return this.transitions.get(Transition.ANY_TRIGGER);
+        }
         return this.transitions.get(trigger);
     }
 
