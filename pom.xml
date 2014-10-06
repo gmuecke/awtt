@@ -173,5 +173,8 @@
 		<module>awtt-protocol-http</module>
 		<module>awtt-server-http</module>
 		<module>awtt-common</module>
+		<module>awtt-util-template</module>
+		<module>awtt-util-parser</module>
+		<module>awtt-util-statemachine</module>
 	</modules>
 </project>

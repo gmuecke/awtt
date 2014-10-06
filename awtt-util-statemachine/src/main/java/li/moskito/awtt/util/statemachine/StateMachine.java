@@ -85,7 +85,7 @@ public class StateMachine<T> {
      */
     private Object getTrigger(final Input<T> input) {
         final Object trigger;
-        if (input.hasMore()) {
+        if (input.hasData()) {
             trigger = input.read();
         } else {
             trigger = Transition.EOF_TRIGGER;

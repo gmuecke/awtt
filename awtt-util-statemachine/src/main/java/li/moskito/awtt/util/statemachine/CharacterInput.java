@@ -3,7 +3,6 @@
  */
 package li.moskito.awtt.util.statemachine;
 
-
 /**
  * @author Gerald
  */
@@ -19,6 +18,9 @@ public class CharacterInput implements Input<Character> {
 
     @Override
     public Character read() {
+        if (!this.hasData()) {
+            throw new IndexOutOfBoundsException("Invalid Cursor Position " + this.index);
+        }
         return this.data.charAt(this.index);
     }
 
@@ -29,8 +31,8 @@ public class CharacterInput implements Input<Character> {
     }
 
     @Override
-    public boolean hasMore() {
-        return this.index < this.data.length();
+    public boolean hasData() {
+        return this.index >= 0 && this.index < this.data.length();
     }
 
 }
