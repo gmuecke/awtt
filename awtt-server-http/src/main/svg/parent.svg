@@ -25,7 +25,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.2139386"
-     inkscape:cx="149.53326"
+     inkscape:cx="51.093355"
      inkscape:cy="259.47601"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -55,7 +55,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -65,14 +65,14 @@
      id="layer1"
      transform="translate(0,-540.36218)">
     <path
-       style="fill:#7f7f7f;fill-opacity:0.49803922000000000;stroke:#000000;stroke-width:8;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 78.398989,610.27932 -26.21875,54.65625 -0.15625,0 0,0.34375 -0.03125,0.0625 0.03125,0 0,345.31248 437.125001,0 0,-345.71873 -231.0625,0 -26.25,-54.65625 -74.15625,0 -5.125,0 -74.156251,0 z"
+       style="fill:#c8b400;fill-opacity:0.49803922;stroke:#c8b400;stroke-width:12;stroke-miterlimit:4;stroke-opacity:0.75294118;stroke-dasharray:none"
+       d="m 82.841154,652.74968 -23.62474,39.20986 -0.14079,0 0,0.2466 -0.0282,0.0448 0.0282,0 0,247.72379 393.876956,0 0,-248.01523 -208.20176,0 -23.65288,-39.20987 -66.81942,0 -4.61795,0 -66.819416,0 z"
        id="rect2985"
        inkscape:connector-curvature="0" />
     <path
-       inkscape:connector-curvature="0"
-       style="fill:#ffffff;fill-opacity:0.49803922000000000;stroke:#000000;stroke-width:8;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 34.207039,657.93563 -20.205161,48.16723 -0.15632,0 0.03789,0.30294 -0.02433,0.0551 0.03121,0 38.065401,304.3154 437.315331,0 -38.11018,-304.67341 -231.1631,0 -32.28645,-48.16723 -74.18853,0 -5.12724,0 -74.188531,0 z"
-       id="rect2985-7" />
+       style="fill:#c8b400;fill-opacity:0.49803922;stroke:#c8b400;stroke-width:11.06484222;stroke-miterlimit:4;stroke-opacity:0.75294118;stroke-dasharray:none"
+       d="m 36.548996,696.7654 -17.40142,33.26498 -0.141093,0 0.03948,0.20922 -0.02104,0.038 0.02826,0 39.640292,210.16471 394.726684,0 -39.68693,-210.41196 -208.65092,0 -29.9782,-33.26499 -66.96357,0 -4.62792,0 -66.963564,0 z"
+       id="rect2985-1"
+       inkscape:connector-curvature="0" />
   </g>
 </svg>

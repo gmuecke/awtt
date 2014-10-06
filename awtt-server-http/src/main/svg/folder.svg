@@ -14,7 +14,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="folder.png"
+   sodipodi:docname="folder.svg"
    inkscape:export-filename="C:\Users\inacta\Google Drive\Moskito\icons\folder.png"
    inkscape:export-xdpi="4.2199998"
    inkscape:export-ydpi="4.2199998">
@@ -28,11 +28,11 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.85838419"
-     inkscape:cx="-85.594362"
+     inkscape:cx="-267.33117"
      inkscape:cy="257.89812"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
-     showgrid="true"
+     showgrid="false"
      inkscape:window-width="1600"
      inkscape:window-height="848"
      inkscape:window-x="-8"
@@ -57,7 +57,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -67,8 +67,8 @@
      id="layer1"
      transform="translate(0,-540.36218)">
     <path
-       style="fill:#7f7f7f;fill-opacity:0.49803922;stroke:#000000;stroke-width:8;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 74.269523,661.19809 -26.25546,39.15444 -0.156469,0 0,0.24625 -0.03129,0.0448 0.03129,0 0,247.37362 437.737036,0 0,-247.66464 -231.38602,0 -26.28675,-39.15444 -74.26008,0 -5.13218,0 -74.260077,0 z"
+       style="fill:#c8b400;fill-opacity:0.49803922;stroke:#c8b400;stroke-width:12;stroke-miterlimit:4;stroke-opacity:0.75294118;stroke-dasharray:none"
+       d="m 82.841126,652.74968 -23.624733,39.20986 -0.140791,0 0,0.2466 -0.02815,0.0448 0.02815,0 0,247.72378 393.876948,0 0,-248.01522 -208.20176,0 -23.65288,-39.20986 -66.81942,0 -4.61795,0 -66.819415,0 z"
        id="rect2985"
        inkscape:connector-curvature="0" />
   </g>

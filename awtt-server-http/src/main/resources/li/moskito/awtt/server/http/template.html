@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>${currentPath}</title>
+<style type="text/css">
+<!--
+body {
+	font-family: Helvetica, Arial, sans-serif;
+	font-size: 10pt;
+}
+
+h1 {
+	font-size: 12pt;
+}
+
+ul {
+	list-style-type: none;
+}
+
+ul li a:before {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	content: "";
+	margin-right: 5px;
+	background: 0 0/100% no-repeat;
+}
+
+ul li.parent a:before {
+	background-image: url(data:image/png;base64,${parentImageBase64png});
+}
+
+ul li.folder a:before {
+	background-image: url(data:image/png;base64,${folderImageBase64png});
+}
+
+ul li.file   a:before {
+	background-image: url(data:image/png;base64,${fileImageBase64png});
+}
+-->
+</style>
+</head>
+<body>
+	<h1>${currentPath}</h1>
+	<ul>
+		${itemlist{<li class="${itemType}"><a href="${itemUrl}">${itemName}</a></li>}}
+	</ul>
+</body>
+</html>

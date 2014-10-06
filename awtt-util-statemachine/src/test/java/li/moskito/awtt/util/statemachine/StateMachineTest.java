@@ -50,8 +50,8 @@ public class StateMachineTest {
         when(this.transition.getNextState()).thenReturn(finalState);
         when(this.transition.getCursorMovement()).thenReturn(3);
 
-        this.statemachine.addState(finalState);
-        this.statemachine.run(this.input);
+        this.statemachine.addState(this.initialState);
+        this.statemachine.step(this.input);
 
         assertEquals(finalState, this.statemachine.getCurrentState());
 
@@ -66,12 +66,12 @@ public class StateMachineTest {
     public void testStep() throws Exception {
         final State finalState = mock(State.class);
         when(finalState.isFinal()).thenReturn(true);
-
         when(this.input.read()).thenReturn('c');
         when(this.initialState.getTransitionForTrigger('c')).thenReturn(this.transition);
         when(this.transition.getNextState()).thenReturn(finalState);
         when(this.transition.getCursorMovement()).thenReturn(3);
 
+        this.statemachine.addState(this.initialState);
         this.statemachine.addState(finalState);
         this.statemachine.step(this.input);
 

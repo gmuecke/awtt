@@ -10,13 +10,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.URI;
 import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -49,7 +49,7 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
      * 
      * @author Gerald
      */
-    private final class ListingFileVisitor implements FileVisitor<Path> {
+    private final class ListingFileVisitor extends SimpleFileVisitor<Path> {
 
         private final StringBuilder listingBuf;
         private final Path resourcePath;
@@ -69,6 +69,7 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
 
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
+            super.preVisitDirectory(dir, attrs);
             final boolean isRoot = dir.equals(this.resourcePath);
             if (!isRoot && this.options.contains(VisitingOption.DIRECTORIES)) {
                 this.listingBuf.append(DirectoryListingRequestHandler.this.createLink(dir, LinkType.FOLDER));
@@ -80,19 +81,10 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
 
         @Override
         public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+            super.visitFile(file, attrs);
             if (this.options.contains(VisitingOption.FILES)) {
                 this.listingBuf.append(DirectoryListingRequestHandler.this.createLink(file, LinkType.FILE));
             }
-            return FileVisitResult.CONTINUE;
-        }
-
-        @Override
-        public FileVisitResult visitFileFailed(final Path file, final IOException exc) throws IOException {
-            return FileVisitResult.CONTINUE;
-        }
-
-        @Override
-        public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
             return FileVisitResult.CONTINUE;
         }
     }
@@ -126,11 +118,20 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
      */
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryListingRequestHandler.class);
     private final Properties templates;
+    private final String template;
 
     /**
      * 
      */
     public DirectoryListingRequestHandler() {
+        final StringWriter writer = new StringWriter();
+        try {
+            IOUtils.copy(this.getClass().getResourceAsStream("template.html"), writer, "UTF-8");
+        } catch (final IOException e) {
+            throw new ServerRuntimeException("Unable to load directory listing template", e);
+        }
+        this.template = writer.toString();
+
         this.templates = new Properties();
         try {
             this.templates.load(this.getClass().getResourceAsStream("templates.properties"));
@@ -180,37 +181,37 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
     private HttpResponse createDirectoryListingResponse(final HttpRequest httpRequest, final Path resourcePath)
             throws IOException {
 
-        final String title = "Directory " + httpRequest.getResource();
-
         //@formatter:off
-        final String style = this.fromTemplate("html.head.style", this.getListItemStyle("parent"), this.getListItemStyle("folder"), this.getListItemStyle("file"));
-        
+        final String style = this.fromTemplate("css.global", 
+                                this.getListItemStyle("parent"),
+                                this.getListItemStyle("folder"), 
+                                this.getListItemStyle("file"));
         // @formatter:on
-        final String head = this.fromTemplate("html.head", title, style);
+        final String html = this.fromTemplate("html", httpRequest.getResource(), style,
+                this.getFileResourceList(resourcePath));
 
+        final HttpResponse httpResponse = this.createHtmlResponse(html);
+
+        return httpResponse;
+    }
+
+    protected HttpResponse createHtmlResponse(final String html) {
+        final byte[] data = html.getBytes();
+        final HttpResponse httpResponse = new HttpResponse(HttpStatusCodes.OK);
+        httpResponse.setBody(new BinaryBody(Channels.newChannel(new ByteArrayInputStream(data))));
+        httpResponse.addField(CONTENT_LENGTH, data.length);
+        httpResponse.addField(CONTENT_TYPE, "text/html");
+        return httpResponse;
+    }
+
+    private String getFileResourceList(final Path resourcePath) throws IOException {
         final StringBuilder listingBuf = new StringBuilder(256);
-
         if (!resourcePath.equals(this.getContentRoot())) {
             listingBuf.append(this.createLink(resourcePath.getParent(), LinkType.PARENT, ".."));
         }
         Files.walkFileTree(resourcePath, new ListingFileVisitor(listingBuf, resourcePath, VisitingOption.DIRECTORIES));
         Files.walkFileTree(resourcePath, new ListingFileVisitor(listingBuf, resourcePath, VisitingOption.FILES));
-
-        final String header = this.fromTemplate("html.h1", httpRequest.getResource());
-        final String list = this.fromTemplate("html.ul", listingBuf);
-        final String body = this.fromTemplate("html.body", header, list);
-        final String html = this.fromTemplate("html", head, body);
-
-        final byte[] data = html.getBytes();
-        final HttpResponse httpResponse = new HttpResponse(HttpStatusCodes.OK);
-        final ReadableByteChannel channel = Channels.newChannel(new ByteArrayInputStream(data));
-
-        httpResponse.setBody(new BinaryBody(channel));
-
-        httpResponse.addField(CONTENT_LENGTH, data.length);
-        httpResponse.addField(CONTENT_TYPE, "text/html");
-
-        return httpResponse;
+        return listingBuf.toString();
     }
 
     private String fromTemplate(final String templateName, final Object... args) {
@@ -226,32 +227,21 @@ public class DirectoryListingRequestHandler extends FileResourceRequestHandler {
         if (!path.equals(this.getContentRoot())) {
             resolvedPath += this.getContentRoot().relativize(path).toString().replaceAll("\\\\", "/");
         }
-        return String.format("<li class=\"%s\"><a href=\"%s\">%s</a></li>\n", type, resolvedPath, name);
+        return this.fromTemplate("listitem", type, resolvedPath, name);
     }
 
     private String getListItemStyle(final String type) throws IOException {
-        final StringBuilder buf = new StringBuilder(64);
-        //@formatter:off
-        buf.append("display: inline-block;\n").
-            append("width: 16px;\n").
-            append("height: 16px;\n").
-            append("content: \"\";\n").
-            append("margin-right: 5px;\n").
-            append("background-color: blue;").
-            append("background: 0 0/100% no-repeat ").append(this.getImageContentURL(type)).append(';');
-        // @formatter:on
-        return buf.toString();
+        return this.fromTemplate("css.listitem", this.getImageContentURL(type));
     }
 
     private String getImageContentURL(final String imageName) throws IOException {
-        return String.format("url(data:image/png;base64,%s)", this.getImageBase64(imageName));
+        return this.fromTemplate("css.content.png", this.getImageBase64(imageName));
     }
 
     private String getImageBase64(final String imageName) throws IOException {
         final InputStream is = this.getClass().getResourceAsStream("/images/" + imageName + ".png");
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         IOUtils.copy(is, baos);
-
         return new String(Base64.encodeBase64(baos.toByteArray()));
     }
 }
