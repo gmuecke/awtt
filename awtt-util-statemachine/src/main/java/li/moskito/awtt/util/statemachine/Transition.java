@@ -8,15 +8,6 @@ package li.moskito.awtt.util.statemachine;
 public class Transition {
 
     /**
-     * Wildcard character for any character
-     */
-    public static final Object ANY_TRIGGER = new Object();
-    /**
-     * Special character to be used for end-of-file
-     */
-    public static final Object EOF_TRIGGER = new Object();
-
-    /**
      * Empty Action
      */
     static final Runnable EMPTY_ACTION = new Runnable() {
@@ -101,7 +92,7 @@ public class Transition {
      *            action to be performed when transitioning
      */
     public Transition(final State next, final Runnable transitionAction) {
-        this(ANY_TRIGGER, 1, next, transitionAction);
+        this(StandardTrigger.ANY, 1, next, transitionAction);
     }
 
     /**

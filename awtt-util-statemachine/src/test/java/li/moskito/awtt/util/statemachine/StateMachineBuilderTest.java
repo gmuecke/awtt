@@ -22,7 +22,7 @@ public class StateMachineBuilderTest {
                 System.out.print(".");
 
             }
-        }).withTransition(Transition.EOF_TRIGGER, "02", new Runnable() {
+        }).withTransition(StandardTrigger.EOF, "02", new Runnable() {
 
             @Override
             public void run() {

@@ -3,7 +3,6 @@
  */
 package li.moskito.awtt.util.statemachine;
 
-import static li.moskito.awtt.util.statemachine.Transition.ANY_TRIGGER;
 import static li.moskito.awtt.util.statemachine.Transition.EMPTY_ACTION;
 
 import java.util.HashMap;
@@ -147,16 +146,16 @@ public final class StateMachineBuilder {
         }
 
         public StateDeclaration withTransition(final int cursorMovement, final String nextState) {
-            return this.withTransition(ANY_TRIGGER, cursorMovement, nextState, EMPTY_ACTION);
+            return this.withTransition(StandardTrigger.ANY, cursorMovement, nextState, EMPTY_ACTION);
         }
 
         public StateDeclaration withTransition(final int cursorMovement, final String nextState,
                 final Runnable transitionAction) {
-            return this.withTransition(ANY_TRIGGER, cursorMovement, nextState, transitionAction);
+            return this.withTransition(StandardTrigger.ANY, cursorMovement, nextState, transitionAction);
         }
 
         public StateDeclaration withTransition(final String nextState) {
-            return this.withTransition(ANY_TRIGGER, 1, nextState, EMPTY_ACTION);
+            return this.withTransition(StandardTrigger.ANY, 1, nextState, EMPTY_ACTION);
         }
 
         public StateDeclaration asInitialState() {

@@ -63,7 +63,7 @@ public class TransitionTest {
     @Test
     public void testTransitionStateRunnable() throws Exception {
         final Transition t = new Transition(this.next, this.transitionAction);
-        assertEquals(Transition.ANY_TRIGGER, t.getTrigger());
+        assertEquals(StandardTrigger.ANY, t.getTrigger());
         assertEquals(1, t.getCursorMovement());
         assertEquals(this.next, t.getNextState());
 
@@ -74,7 +74,7 @@ public class TransitionTest {
     @Test
     public void testTransitionState() throws Exception {
         final Transition t = new Transition(this.next);
-        assertEquals(Transition.ANY_TRIGGER, t.getTrigger());
+        assertEquals(StandardTrigger.ANY, t.getTrigger());
         assertEquals(1, t.getCursorMovement());
         assertEquals(this.next, t.getNextState());
     }

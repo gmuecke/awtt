@@ -88,7 +88,7 @@ public class StateMachine<T> {
         if (input.hasData()) {
             trigger = input.read();
         } else {
-            trigger = Transition.EOF_TRIGGER;
+            trigger = StandardTrigger.EOF;
         }
         return trigger;
     }
