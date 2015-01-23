@@ -22,7 +22,7 @@ public class TransitionTest {
     private Object trigger;
 
     @Mock
-    private Runnable transitionAction;
+    private TransitionAction transitionAction;
 
     private Transition transition;
 
@@ -42,14 +42,14 @@ public class TransitionTest {
     }
 
     @Test
-    public void testTransitionObjectStateRunnable() throws Exception {
+    public void testTransitionObjectStateTransitionAction() throws Exception {
         final Transition t = new Transition(this.trigger, this.next, this.transitionAction);
         assertEquals(this.trigger, t.getTrigger());
         assertEquals(1, t.getCursorMovement());
         assertEquals(this.next, t.getNextState());
 
-        t.fire();
-        verify(this.transitionAction).run();
+        t.fire("123");
+        verify(this.transitionAction).execute("123");
     }
 
     @Test
@@ -61,14 +61,14 @@ public class TransitionTest {
     }
 
     @Test
-    public void testTransitionStateRunnable() throws Exception {
+    public void testTransitionStateTransitionAction() throws Exception {
         final Transition t = new Transition(this.next, this.transitionAction);
         assertEquals(StandardTrigger.ANY, t.getTrigger());
         assertEquals(1, t.getCursorMovement());
         assertEquals(this.next, t.getNextState());
 
-        t.fire();
-        verify(this.transitionAction).run();
+        t.fire("123");
+        verify(this.transitionAction).execute("123");
     }
 
     @Test
@@ -96,8 +96,8 @@ public class TransitionTest {
 
     @Test
     public void testFire() throws Exception {
-        this.transition.fire();
-        verify(this.transitionAction).run();
+        this.transition.fire("123");
+        verify(this.transitionAction).execute("123");
     }
 
 }

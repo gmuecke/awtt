@@ -15,19 +15,18 @@ public class StateMachineBuilderTest {
     public void testBuild_simpleStateMachine() throws Exception {
 
         final StateMachineBuilder smb = StateMachineBuilder.newInstance();
-        smb.addState("01").asInitialState().withTransition(1, "01", new Runnable() {
+        smb.addState("01").asInitialState().withTransition(1, "01", new TransitionAction() {
 
             @Override
-            public void run() {
-                System.out.print(".");
+            public void execute(final Object triggerInput) {
+                System.out.print("." + triggerInput);
 
             }
-        }).withTransition(StandardTrigger.EOF, "02", new Runnable() {
+        }).withTransition(StandardTrigger.EOF, "02", new TransitionAction() {
 
             @Override
-            public void run() {
-                System.out.print("!");
-
+            public void execute(final Object triggerInput) {
+                System.out.print("!" + triggerInput);
             }
         });
         smb.addState("02");

@@ -70,7 +70,7 @@ public class StateMachine<T> {
     public void step(final Input<T> input) {
         final Object trigger = this.getTrigger(input);
         final Transition t = this.currentState.getTransitionForTrigger(trigger);
-        t.fire();
+        t.fire(trigger);
         input.moveCursor(t.getCursorMovement());
         this.currentState = t.getNextState();
     }

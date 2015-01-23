@@ -55,7 +55,7 @@ public class StateMachineTest {
 
         assertEquals(finalState, this.statemachine.getCurrentState());
 
-        verify(this.transition).fire();
+        verify(this.transition).fire('c');
         final ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
         verify(this.input).moveCursor(captor.capture());
         assertEquals(Integer.valueOf(3), captor.getValue());
@@ -77,7 +77,7 @@ public class StateMachineTest {
 
         assertEquals(finalState, this.statemachine.getCurrentState());
 
-        verify(this.transition).fire();
+        verify(this.transition).fire('c');
         final ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
         verify(this.input).moveCursor(captor.capture());
         assertEquals(Integer.valueOf(3), captor.getValue());

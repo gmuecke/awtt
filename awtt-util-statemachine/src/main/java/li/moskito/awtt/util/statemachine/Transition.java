@@ -10,17 +10,17 @@ public class Transition {
     /**
      * Empty Action
      */
-    static final Runnable EMPTY_ACTION = new Runnable() {
+    static final TransitionAction EMPTY_ACTION = new TransitionAction() {
 
         @Override
-        public void run() {
+        public void execute(final Object triggerInput) {
         }
     };
 
     private final Object trigger;
     private final State nextState;
     private final int cursorMovement;
-    private final Runnable transitionAction;
+    private final TransitionAction transitionAction;
 
     /**
      * Creates a new transition
@@ -35,7 +35,8 @@ public class Transition {
      * @param transitionAction
      *            action to be performed when transitioning
      */
-    public Transition(final Object trigger, final int cursorMovement, final State next, final Runnable transitionAction) {
+    public Transition(final Object trigger, final int cursorMovement, final State next,
+            final TransitionAction transitionAction) {
         this.trigger = trigger;
         this.nextState = next;
         this.cursorMovement = cursorMovement;
@@ -67,7 +68,7 @@ public class Transition {
      * @param transitionAction
      *            action to be performed when transitioning
      */
-    public Transition(final Object c, final State next, final Runnable transitionAction) {
+    public Transition(final Object c, final State next, final TransitionAction transitionAction) {
         this(c, 1, next, transitionAction);
     }
 
@@ -91,7 +92,7 @@ public class Transition {
      * @param transitionAction
      *            action to be performed when transitioning
      */
-    public Transition(final State next, final Runnable transitionAction) {
+    public Transition(final State next, final TransitionAction transitionAction) {
         this(StandardTrigger.ANY, 1, next, transitionAction);
     }
 
@@ -134,7 +135,7 @@ public class Transition {
      * @return
      * @throws Exception
      */
-    public void fire() {
-        this.transitionAction.run();
+    public void fire(final Object input) {
+        this.transitionAction.execute(input);
     }
 }

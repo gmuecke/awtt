@@ -73,7 +73,7 @@ public final class StateMachineBuilder {
         private final Object trigger;
         private final int cursorMovement;
         private final String nextState;
-        private final Runnable transitionAction;
+        private final TransitionAction transitionAction;
 
         /**
          * @param trigger
@@ -86,7 +86,7 @@ public final class StateMachineBuilder {
          *            the action to be performed upon firing the transition
          */
         TransitionDeclaration(final Object trigger, final int cursorMovement, final String nextState,
-                final Runnable transitionAction) {
+                final TransitionAction transitionAction) {
             super();
 
             this.trigger = trigger;
@@ -107,7 +107,7 @@ public final class StateMachineBuilder {
             return this.nextState;
         }
 
-        public Runnable getTransitionAction() {
+        public TransitionAction getTransitionAction() {
             return this.transitionAction;
         }
 
@@ -127,7 +127,7 @@ public final class StateMachineBuilder {
         }
 
         public StateDeclaration withTransition(final Object trigger, final int cursorMovement, final String nextState,
-                final Runnable transitionAction) {
+                final TransitionAction transitionAction) {
             this.transitions.add(new TransitionDeclaration(trigger, cursorMovement, nextState, transitionAction));
             return this;
         }
@@ -137,7 +137,7 @@ public final class StateMachineBuilder {
         }
 
         public StateDeclaration withTransition(final Object trigger, final String nextState,
-                final Runnable transitionAction) {
+                final TransitionAction transitionAction) {
             return this.withTransition(trigger, 1, nextState, transitionAction);
         }
 
@@ -150,12 +150,16 @@ public final class StateMachineBuilder {
         }
 
         public StateDeclaration withTransition(final int cursorMovement, final String nextState,
-                final Runnable transitionAction) {
+                final TransitionAction transitionAction) {
             return this.withTransition(StandardTrigger.ANY, cursorMovement, nextState, transitionAction);
         }
 
         public StateDeclaration withTransition(final String nextState) {
             return this.withTransition(StandardTrigger.ANY, 1, nextState, EMPTY_ACTION);
+        }
+
+        public StateDeclaration withTransition(final String nextState, final TransitionAction transitionAction) {
+            return this.withTransition(StandardTrigger.ANY, 1, nextState, transitionAction);
         }
 
         public StateDeclaration asInitialState() {
